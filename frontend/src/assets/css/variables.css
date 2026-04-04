@@ -1,0 +1,89 @@
+/* ============================================
+   Design Tokens — Restaurant Stock Management
+   ============================================ */
+
+:root {
+  /* ── Colors ── */
+  --color-primary:       #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-primary-bg:    #eff6ff;
+
+  --color-success:       #16a34a;
+  --color-success-hover: #15803d;
+  --color-success-light: #dcfce7;
+
+  --color-danger:        #dc2626;
+  --color-danger-hover:  #b91c1c;
+  --color-danger-light:  #fee2e2;
+
+  --color-warning:       #ea580c;
+  --color-warning-hover: #c2410c;
+  --color-warning-light: #fff7ed;
+
+  --color-info:          #0891b2;
+  --color-info-light:    #ecfeff;
+
+  /* ── Neutrals ── */
+  --color-white:         #ffffff;
+  --color-bg:            #f1f5f9;
+  --color-bg-alt:        #e2e8f0;
+  --color-border:        #e2e8f0;
+  --color-border-focus:  #93c5fd;
+
+  --color-text:          #1e293b;
+  --color-text-secondary:#64748b;
+  --color-text-muted:    #94a3b8;
+  --color-text-inverse:  #ffffff;
+
+  /* ── Nav ── */
+  --color-nav:           #0f172a;
+  --color-nav-hover:     #1e293b;
+  --color-nav-link:      #94a3b8;
+  --color-nav-active:    #ffffff;
+
+  /* ── Spacing ── */
+  --space-xs:  0.25rem;
+  --space-sm:  0.5rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2rem;
+  --space-2xl: 3rem;
+
+  /* ── Radius ── */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  /* ── Typography ── */
+  --font-family: 'Inter', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs:  0.75rem;
+  --font-size-sm:  0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:  1.125rem;
+  --font-size-xl:  1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height: 1.6;
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-slow: 300ms ease;
+}

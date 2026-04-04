@@ -1,0 +1,289 @@
+package handlers
+
+import (
+	"net/http"
+
+	"restaurant-stock/database"
+	"restaurant-stock/models"
+
+	"github.com/gin-gonic/gin"
+)
+
+func GetCategories(c *gin.Context) {
+	var categories []models.Category
+	database.DB.Order("name").Find(&categories)
+	c.JSON(http.StatusOK, categories)
+}
+
+func CreateCategory(c *gin.Context) {
+	var cat models.Category
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Create(&cat)
+	c.JSON(http.StatusCreated, cat)
+}
+
+func UpdateCategory(c *gin.Context) {
+	var cat models.Category
+	if err := database.DB.First(&cat, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		return
+	}
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Save(&cat)
+	c.JSON(http.StatusOK, cat)
+}
+
+func DeleteCategory(c *gin.Context) {
+	if err := database.DB.Delete(&models.Category{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
+func BulkDeleteCategories(c *gin.Context) {
+	var body struct {
+		IDs []uint `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		return
+	}
+	if err := database.DB.Delete(&models.Category{}, body.IDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+}
+
+// ==================== Units ====================
+
+func GetUnits(c *gin.Context) {
+	var units []models.Unit
+	database.DB.Order("name").Find(&units)
+	c.JSON(http.StatusOK, units)
+}
+
+func CreateUnit(c *gin.Context) {
+	var unit models.Unit
+	if err := c.ShouldBindJSON(&unit); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Create(&unit)
+	c.JSON(http.StatusCreated, unit)
+}
+
+func UpdateUnit(c *gin.Context) {
+	var unit models.Unit
+	if err := database.DB.First(&unit, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Unit not found"})
+		return
+	}
+	if err := c.ShouldBindJSON(&unit); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Save(&unit)
+	c.JSON(http.StatusOK, unit)
+}
+
+func DeleteUnit(c *gin.Context) {
+	if err := database.DB.Delete(&models.Unit{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
+func BulkDeleteUnits(c *gin.Context) {
+	var body struct {
+		IDs []uint `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		return
+	}
+	if err := database.DB.Delete(&models.Unit{}, body.IDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+}
+
+func GetIngredients(c *gin.Context) {
+	var ingredients []models.Ingredient
+	query := database.DB.Preload("Category").Preload("Unit").Order("name")
+	if catID := c.Query("category_id"); catID != "" {
+		query = query.Where("category_id = ?", catID)
+	}
+	if search := c.Query("search"); search != "" {
+		query = query.Where("name LIKE ?", "%"+search+"%")
+	}
+	query.Find(&ingredients)
+	c.JSON(http.StatusOK, ingredients)
+}
+
+func CreateIngredient(c *gin.Context) {
+	var body struct {
+		Name       string  `json:"name"`
+		CategoryID uint    `json:"category_id"`
+		UnitID     uint    `json:"unit_id"`
+		Quantity   float64 `json:"quantity"`
+		MinStock   float64 `json:"min_stock"`
+		Note       string  `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if body.UnitID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unit_id is required"})
+		return
+	}
+
+	ing := models.Ingredient{
+		Name:       body.Name,
+		CategoryID: body.CategoryID,
+		UnitID:     body.UnitID,
+		Quantity:   body.Quantity,
+		MinStock:   body.MinStock,
+	}
+	database.DB.Create(&ing)
+
+	// Auto create stock-in transaction if initial quantity > 0
+	if body.Quantity > 0 {
+		note := body.Note
+		if note == "" {
+			note = "สต็อคเริ่มต้น"
+		}
+		txn := models.Transaction{
+			IngredientID: ing.ID,
+			Type:         models.StockIn,
+			Quantity:     body.Quantity,
+			Note:         note,
+		}
+		database.DB.Create(&txn)
+	}
+
+	database.DB.Preload("Category").Preload("Unit").First(&ing, ing.ID)
+	c.JSON(http.StatusCreated, ing)
+}
+
+func UpdateIngredient(c *gin.Context) {
+	var ing models.Ingredient
+	if err := database.DB.First(&ing, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ingredient not found"})
+		return
+	}
+	if err := c.ShouldBindJSON(&ing); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if ing.CategoryID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category_id is required"})
+		return
+	}
+	if ing.UnitID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unit_id is required"})
+		return
+	}
+	database.DB.Save(&ing)
+	database.DB.Preload("Category").Preload("Unit").First(&ing, ing.ID)
+	c.JSON(http.StatusOK, ing)
+}
+
+func DeleteIngredient(c *gin.Context) {
+	if err := database.DB.Delete(&models.Ingredient{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
+func BulkDeleteIngredients(c *gin.Context) {
+	var body struct {
+		IDs []uint `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		return
+	}
+	if err := database.DB.Delete(&models.Ingredient{}, body.IDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+}
+
+func GetTransactions(c *gin.Context) {
+	var txns []models.Transaction
+	query := database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").Order("created_at DESC")
+	if ingID := c.Query("ingredient_id"); ingID != "" {
+		query = query.Where("ingredient_id = ?", ingID)
+	}
+	if txnType := c.Query("type"); txnType != "" {
+		query = query.Where("type = ?", txnType)
+	}
+	query.Limit(100).Find(&txns)
+	c.JSON(http.StatusOK, txns)
+}
+
+func CreateTransaction(c *gin.Context) {
+	var txn models.Transaction
+	if err := c.ShouldBindJSON(&txn); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if txn.Type != models.StockIn && txn.Type != models.StockOut {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'in' or 'out'"})
+		return
+	}
+	if txn.Quantity <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "quantity must be positive"})
+		return
+	}
+	var ing models.Ingredient
+	if err := database.DB.First(&ing, txn.IngredientID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ingredient not found"})
+		return
+	}
+	if txn.Type == models.StockOut && ing.Quantity < txn.Quantity {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient stock"})
+		return
+	}
+	if txn.Type == models.StockIn {
+		ing.Quantity += txn.Quantity
+	} else {
+		ing.Quantity -= txn.Quantity
+	}
+	database.DB.Save(&ing)
+	database.DB.Create(&txn)
+	database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").First(&txn, txn.ID)
+	c.JSON(http.StatusCreated, txn)
+}
+
+func GetDashboard(c *gin.Context) {
+	var totalIngredients int64
+	var totalCategories int64
+	var lowStockItems []models.Ingredient
+	var recentTxns []models.Transaction
+
+	database.DB.Model(&models.Ingredient{}).Count(&totalIngredients)
+	database.DB.Model(&models.Category{}).Count(&totalCategories)
+	database.DB.Preload("Category").Preload("Unit").Where("quantity <= min_stock").Find(&lowStockItems)
+	database.DB.Preload("Ingredient").Preload("Ingredient.Unit").Order("created_at DESC").Limit(10).Find(&recentTxns)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_ingredients":   totalIngredients,
+		"total_categories":    totalCategories,
+		"low_stock_items":     lowStockItems,
+		"recent_transactions": recentTxns,
+	})
+}

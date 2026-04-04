@@ -1,0 +1,17 @@
+# Dependencies
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+
+# Data
+data/*.db
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+*.code-workspace
