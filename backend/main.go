@@ -33,6 +33,11 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		// Public — health check
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
 		// Public — auth endpoints
 		api.POST("/auth/login", handlers.Login)
 		api.POST("/auth/logout", handlers.Logout)
