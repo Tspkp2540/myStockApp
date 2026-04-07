@@ -89,8 +89,22 @@ func main() {
 		admin.DELETE("/users/:id", handlers.DeleteUser)
 	}
 
-	log.Println("Server starting on :8080")
-	if err := r.Run(":8080"); err != nil {
+	// Serve frontend static files if the directory exists (Railway single-container mode)
+	if _, err := os.Stat("./static"); err == nil {
+		r.Static("/assets", "./static/assets")
+		r.StaticFile("/vite.svg", "./static/vite.svg")
+		r.NoRoute(func(c *gin.Context) {
+			c.File("./static/index.html")
+		})
+		log.Println("Serving frontend static files from ./static")
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server starting on :%s", port)
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
