@@ -164,6 +164,7 @@ func CreateIngredient(c *gin.Context) {
 		if note == "" {
 			note = "สต็อคเริ่มต้น"
 		}
+		user := c.MustGet("user").(models.User)
 		txn := models.Transaction{
 			IngredientID: ing.ID,
 			Type:         models.StockIn,
@@ -171,6 +172,7 @@ func CreateIngredient(c *gin.Context) {
 			Price:        body.Price,
 			TotalCost:    body.Price * body.Quantity,
 			Note:         note,
+			UserID:       user.ID,
 		}
 		database.DB.Create(&txn)
 	}
@@ -227,7 +229,7 @@ func BulkDeleteIngredients(c *gin.Context) {
 
 func GetTransactions(c *gin.Context) {
 	var txns []models.Transaction
-	query := database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").Order("created_at DESC")
+	query := database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").Preload("User").Order("created_at DESC")
 	if ingID := c.Query("ingredient_id"); ingID != "" {
 		query = query.Where("ingredient_id = ?", ingID)
 	}
@@ -267,9 +269,11 @@ func CreateTransaction(c *gin.Context) {
 		ing.Quantity -= txn.Quantity
 	}
 	txn.TotalCost = txn.Price * txn.Quantity
+	user := c.MustGet("user").(models.User)
+	txn.UserID = user.ID
 	database.DB.Save(&ing)
 	database.DB.Create(&txn)
-	database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").First(&txn, txn.ID)
+	database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").Preload("User").First(&txn, txn.ID)
 	c.JSON(http.StatusCreated, txn)
 }
 
@@ -283,10 +287,10 @@ func GetIngredientCostSummary(c *gin.Context) {
 	}
 	var summaries []CostSummary
 	database.DB.Model(&models.Transaction{}).Select(
-		"ingredient_id, "+
-			"SUM(CASE WHEN type = 'in' THEN quantity ELSE 0 END) as total_in, "+
-			"SUM(CASE WHEN type = 'out' THEN quantity ELSE 0 END) as total_out, "+
-			"SUM(CASE WHEN type = 'in' THEN total_cost ELSE 0 END) as cost_in, "+
+		"ingredient_id, " +
+			"SUM(CASE WHEN type = 'in' THEN quantity ELSE 0 END) as total_in, " +
+			"SUM(CASE WHEN type = 'out' THEN quantity ELSE 0 END) as total_out, " +
+			"SUM(CASE WHEN type = 'in' THEN total_cost ELSE 0 END) as cost_in, " +
 			"SUM(CASE WHEN type = 'out' THEN total_cost ELSE 0 END) as cost_out",
 	).Group("ingredient_id").Scan(&summaries)
 	c.JSON(http.StatusOK, summaries)

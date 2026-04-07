@@ -72,5 +72,7 @@ type Transaction struct {
 	Price        float64         `json:"price" gorm:"default:0"`
 	TotalCost    float64         `json:"total_cost" gorm:"default:0"`
 	Note         string          `json:"note"`
+	UserID       uint            `json:"user_id"`
+	User         User            `json:"user" gorm:"foreignKey:UserID"`
 	CreatedAt    time.Time       `json:"created_at"`
 }

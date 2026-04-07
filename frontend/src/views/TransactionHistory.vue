@@ -73,6 +73,7 @@
               <th>หน่วย</th>
               <th class="text-right">ราคา/หน่วย</th>
               <th class="text-right">รวมเงิน</th>
+              <th>ผู้ทำรายการ</th>
               <th>หมายเหตุ</th>
             </tr>
           </thead>
@@ -90,10 +91,11 @@
               <td>{{ txn.ingredient?.unit?.name }}</td>
               <td class="text-right">{{ formatMoney(txn.price) }}</td>
               <td class="text-right"><strong>{{ formatMoney(txn.total_cost) }}</strong></td>
+              <td>{{ txn.user?.full_name || txn.user?.username || '-' }}</td>
               <td>{{ txn.note || '-' }}</td>
             </tr>
             <tr v-if="transactions.length === 0">
-              <td colspan="9" class="table-empty">
+              <td colspan="10" class="table-empty">
                 <span class="table-empty-icon">📋</span>
                 ยังไม่มีรายการเคลื่อนไหว
               </td>
@@ -101,7 +103,7 @@
             <tr v-if="transactions.length > 0" class="total-row">
               <td colspan="7" class="text-right"><strong>รวมทั้งหมด</strong></td>
               <td class="text-right"><strong>{{ formatMoney(transactionTotal) }}</strong></td>
-              <td></td>
+              <td colspan="2"></td>
             </tr>
           </tbody>
         </table>
