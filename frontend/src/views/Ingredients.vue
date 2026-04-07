@@ -118,6 +118,10 @@
           </div>
         </div>
         <div class="form-group" v-if="!editing && form.quantity > 0">
+          <label>ราคาต่อหน่วย (ฺ)</label>
+          <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="form-group" v-if="!editing && form.quantity > 0">
           <label>เหตุผลในการเพิ่มสต็อค <span class="required">*</span></label>
           <input v-model="form.note" class="form-control" placeholder="เช่น สต็อคเปิดร้าน, รับสินค้าจากซัพพลายเออร์" />
         </div>
@@ -195,7 +199,7 @@ export default {
       filterCategory: '',
       showModal: false,
       editing: null,
-      form: { name: '', category_id: null, unit_id: null, quantity: 0, min_stock: 0, note: '' },
+      form: { name: '', category_id: null, unit_id: null, quantity: 0, min_stock: 0, note: '', price: 0 },
       showAddCategory: false,
       showAddUnit: false,
       newCategoryName: '',
@@ -221,8 +225,8 @@ export default {
     openModal(ing = null) {
       this.editing = ing
       this.form = ing
-        ? { name: ing.name, category_id: ing.category_id || null, unit_id: ing.unit_id || null, quantity: ing.quantity, min_stock: ing.min_stock, note: '' }
-        : { name: '', category_id: null, unit_id: null, quantity: 0, min_stock: 0, note: '' }
+        ? { name: ing.name, category_id: ing.category_id || null, unit_id: ing.unit_id || null, quantity: ing.quantity, min_stock: ing.min_stock, note: '', price: 0 }
+        : { name: '', category_id: null, unit_id: null, quantity: 0, min_stock: 0, note: '', price: 0 }
       this.showModal = true
     },
     isFormDirty() {
@@ -252,6 +256,7 @@ export default {
         await updateIngredient(this.editing.id, payload)
       } else {
         if (this.form.note.trim()) payload.note = this.form.note
+        if (this.form.price > 0) payload.price = this.form.price
         await createIngredient(payload)
       }
       this.showModal = false

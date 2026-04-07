@@ -138,6 +138,7 @@ func CreateIngredient(c *gin.Context) {
 		Quantity   float64 `json:"quantity"`
 		MinStock   float64 `json:"min_stock"`
 		Note       string  `json:"note"`
+		Price      float64 `json:"price"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -167,6 +168,8 @@ func CreateIngredient(c *gin.Context) {
 			IngredientID: ing.ID,
 			Type:         models.StockIn,
 			Quantity:     body.Quantity,
+			Price:        body.Price,
+			TotalCost:    body.Price * body.Quantity,
 			Note:         note,
 		}
 		database.DB.Create(&txn)
@@ -263,10 +266,30 @@ func CreateTransaction(c *gin.Context) {
 	} else {
 		ing.Quantity -= txn.Quantity
 	}
+	txn.TotalCost = txn.Price * txn.Quantity
 	database.DB.Save(&ing)
 	database.DB.Create(&txn)
 	database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").First(&txn, txn.ID)
 	c.JSON(http.StatusCreated, txn)
+}
+
+func GetIngredientCostSummary(c *gin.Context) {
+	type CostSummary struct {
+		IngredientID uint    `json:"ingredient_id"`
+		TotalIn      float64 `json:"total_in"`
+		TotalOut     float64 `json:"total_out"`
+		CostIn       float64 `json:"cost_in"`
+		CostOut      float64 `json:"cost_out"`
+	}
+	var summaries []CostSummary
+	database.DB.Model(&models.Transaction{}).Select(
+		"ingredient_id, "+
+			"SUM(CASE WHEN type = 'in' THEN quantity ELSE 0 END) as total_in, "+
+			"SUM(CASE WHEN type = 'out' THEN quantity ELSE 0 END) as total_out, "+
+			"SUM(CASE WHEN type = 'in' THEN total_cost ELSE 0 END) as cost_in, "+
+			"SUM(CASE WHEN type = 'out' THEN total_cost ELSE 0 END) as cost_out",
+	).Group("ingredient_id").Scan(&summaries)
+	c.JSON(http.StatusOK, summaries)
 }
 
 func GetDashboard(c *gin.Context) {

@@ -30,8 +30,20 @@
           <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" />
         </div>
         <div class="form-group">
+          <label>ราคาต่อหน่วย (ฺ)</label>
+          <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
           <label>หมายเหตุ</label>
           <input v-model="form.note" class="form-control" placeholder="เช่น ซื้อจากตลาด, ใช้ทำอาหาร" />
+        </div>
+        <div class="form-group">
+          <label>รวมเป็นเงิน</label>
+          <div class="total-cost-display">
+            {{ formatMoney(computedTotal) }} ฺ
+          </div>
         </div>
       </div>
       <button class="btn btn-lg btn-success" @click="confirmSubmit">
@@ -75,7 +87,7 @@ export default {
   data() {
     return {
       ingredients: [],
-      form: { ingredient_id: null, type: 'in', quantity: 0, note: '' },
+      form: { ingredient_id: null, type: 'in', quantity: 0, price: 0, note: '' },
       message: '',
       messageType: '',
       confirmAction: null
@@ -85,12 +97,18 @@ export default {
     selectedIngredient() {
       if (!this.form.ingredient_id) return null
       return this.ingredients.find(i => i.id === this.form.ingredient_id)
+    },
+    computedTotal() {
+      return (this.form.price || 0) * (this.form.quantity || 0)
     }
   },
   async mounted() {
     await this.loadIngredients()
   },
   methods: {
+    formatMoney(val) {
+      return Number(val || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
     async loadIngredients() {
       const { data } = await getIngredients()
       this.ingredients = data
@@ -103,9 +121,10 @@ export default {
       }
       const ing = this.selectedIngredient
       const typeName = this.form.type === 'in' ? 'รับเข้า' : 'จ่ายออก'
+      const totalText = this.form.price > 0 ? ` (รวม ${this.formatMoney(this.computedTotal)} ฺ)` : ''
       this.confirmAction = {
         title: `ยืนยันการ${typeName}สต็อค`,
-        message: `${typeName} "${ing?.name}" จำนวน ${this.form.quantity} ${ing?.unit?.name || ''} ต้องการดำเนินการหรือไม่?`,
+        message: `${typeName} "${ing?.name}" จำนวน ${this.form.quantity} ${ing?.unit?.name || ''}${totalText} ต้องการดำเนินการหรือไม่?`,
         confirmText: 'บันทึก',
         variant: this.form.type === 'in' ? 'info' : 'warning',
         onConfirm: () => this.submit()
@@ -118,11 +137,13 @@ export default {
           ingredient_id: Number(this.form.ingredient_id),
           type: this.form.type,
           quantity: this.form.quantity,
+          price: this.form.price || 0,
           note: this.form.note
         })
         this.message = '✓ บันทึกสำเร็จ!'
         this.messageType = 'alert-success'
         this.form.quantity = 0
+        this.form.price = 0
         this.form.note = ''
         await this.loadIngredients()
       } catch (err) {
@@ -141,5 +162,18 @@ export default {
 
 .btn-lg {
   margin-top: var(--space-sm);
+}
+
+.total-cost-display {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 0.6rem 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
 }
 </style>

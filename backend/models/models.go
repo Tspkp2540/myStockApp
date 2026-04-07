@@ -69,6 +69,8 @@ type Transaction struct {
 	Ingredient   Ingredient      `json:"ingredient" gorm:"foreignKey:IngredientID"`
 	Type         TransactionType `json:"type" gorm:"not null"`
 	Quantity     float64         `json:"quantity" gorm:"not null"`
+	Price        float64         `json:"price" gorm:"default:0"`
+	TotalCost    float64         `json:"total_cost" gorm:"default:0"`
 	Note         string          `json:"note"`
 	CreatedAt    time.Time       `json:"created_at"`
 }
