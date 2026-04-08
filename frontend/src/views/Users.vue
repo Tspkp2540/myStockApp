@@ -7,8 +7,8 @@
 
     <div class="card">
       <div class="card-header">
-        <h2 class="section-title">👤 รายชื่อผู้ใช้</h2>
-        <button class="btn btn-primary" @click="openModal()">+ เพิ่มผู้ใช้</button>
+        <h2 class="section-title"><span class="material-symbols-outlined">group</span> รายชื่อผู้ใช้</h2>
+        <button class="btn btn-primary" @click="openModal()"><span class="material-symbols-outlined">person_add</span> เพิ่มผู้ใช้</button>
       </div>
       <div class="table-wrapper">
         <table>
@@ -29,24 +29,26 @@
               <td>{{ u.full_name || '-' }}</td>
               <td>
                 <span :class="['badge', u.role === 'admin' ? 'badge-warning' : 'badge-info']">
-                  {{ u.role === 'admin' ? '🔑 ผู้ดูแล' : '👤 พนักงาน' }}
+                  <span class="material-symbols-outlined">{{ u.role === 'admin' ? 'shield_person' : 'person' }}</span>
+                  {{ u.role === 'admin' ? 'ผู้ดูแล' : 'พนักงาน' }}
                 </span>
               </td>
               <td>
                 <span :class="['badge', u.active ? 'badge-ok' : 'badge-low']">
-                  {{ u.active ? '✓ ใช้งาน' : '✗ ระงับ' }}
+                  <span class="material-symbols-outlined">{{ u.active ? 'check_circle' : 'cancel' }}</span>
+                  {{ u.active ? 'ใช้งาน' : 'ระงับ' }}
                 </span>
               </td>
               <td>
                 <div class="btn-group">
-                  <button class="btn btn-sm btn-warning" @click="openModal(u)">แก้ไข</button>
-                  <button class="btn btn-sm btn-outline-danger" @click="remove(u.id)" v-if="u.id !== currentUser?.id">ลบ</button>
+                  <button class="btn btn-sm btn-warning" @click="openModal(u)"><span class="material-symbols-outlined">edit</span> แก้ไข</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="remove(u.id)" v-if="u.id !== currentUser?.id"><span class="material-symbols-outlined">delete</span> ลบ</button>
                 </div>
               </td>
             </tr>
             <tr v-if="users.length === 0">
               <td colspan="6" class="table-empty">
-                <span class="table-empty-icon">👤</span>
+                <span class="table-empty-icon"><span class="material-symbols-outlined">person_off</span></span>
                 ยังไม่มีผู้ใช้
               </td>
             </tr>
@@ -61,22 +63,24 @@
         <h3 class="modal-title">{{ editing ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่' }}</h3>
         <div class="form-group" v-if="!editing">
           <label>ชื่อผู้ใช้ <span class="required">*</span></label>
-          <input v-model="form.username" class="form-control" placeholder="username" />
+          <input v-model="form.username" class="form-control" :class="{ 'is-invalid': usernameError }" placeholder="username (a-z, 0-9)" maxlength="15" @input="validateUsername" />
+          <div v-if="usernameError" class="inline-error"><span class="material-symbols-outlined">error</span> {{ usernameError }}</div>
         </div>
         <div class="form-group">
           <label>ชื่อ-นามสกุล</label>
-          <input v-model="form.full_name" class="form-control" placeholder="เช่น สมชาย ใจดี" />
+          <input v-model="form.full_name" class="form-control" placeholder="เช่น สมชาย ใจดี" maxlength="100" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>{{ editing ? 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน *' }}</label>
-            <input v-model="form.password" class="form-control" type="password" placeholder="••••••••" />
+            <input v-model="form.password" class="form-control" :class="{ 'is-invalid': passwordError }" type="password" placeholder="••••••••" maxlength="15" @input="validatePassword" />
+            <div v-if="passwordError" class="inline-error"><span class="material-symbols-outlined">error</span> {{ passwordError }}</div>
           </div>
           <div class="form-group">
             <label>สิทธิ์</label>
             <select v-model="form.role" class="form-control">
-              <option value="employee">👤 พนักงาน</option>
-              <option value="admin">🔑 ผู้ดูแลระบบ</option>
+              <option value="employee">พนักงาน</option>
+              <option value="admin">ผู้ดูแลระบบ</option>
             </select>
           </div>
         </div>
@@ -119,7 +123,9 @@ export default {
       editing: null,
       form: { username: '', password: '', full_name: '', role: 'employee', active: true },
       currentUser: null,
-      confirmAction: null
+      confirmAction: null,
+      usernameError: '',
+      passwordError: ''
     }
   },
   async mounted() {
@@ -128,12 +134,54 @@ export default {
     await this.load()
   },
   methods: {
+    validateUsername() {
+      const v = this.form.username
+      // Strip non-alphanumeric characters
+      this.form.username = v.replace(/[^a-zA-Z0-9]/g, '')
+      const val = this.form.username
+      if (!val) {
+        this.usernameError = ''
+        return
+      }
+      if (val.length < 4) {
+        this.usernameError = 'ต้องมีอย่างน้อย 4 ตัวอักษร'
+      } else {
+        this.usernameError = ''
+      }
+    },
+    validatePassword() {
+      const v = this.form.password
+      if (/[^a-zA-Z0-9]/.test(v)) {
+        this.form.password = ''
+        this.passwordError = ''
+        this.confirmAction = {
+          title: 'รหัสผ่านไม่ถูกต้อง',
+          message: 'รหัสผ่านต้องเป็นภาษาอังกฤษหรือตัวเลขเท่านั้น กรุณากรอกใหม่',
+          confirmText: 'ตกลง',
+          variant: 'warning',
+          onConfirm: () => { this.confirmAction = null }
+        }
+        return
+      }
+      const val = this.form.password
+      if (!val) {
+        this.passwordError = ''
+        return
+      }
+      if (val.length < 6) {
+        this.passwordError = 'ต้องมีอย่างน้อย 6 ตัวอักษร'
+      } else {
+        this.passwordError = ''
+      }
+    },
     async load() {
       const { data } = await getUsers()
       this.users = data
     },
     openModal(user = null) {
       this.editing = user
+      this.usernameError = ''
+      this.passwordError = ''
       if (user) {
         this.form = { full_name: user.full_name, role: user.role, active: user.active, password: '' }
       } else {
@@ -143,7 +191,7 @@ export default {
     },
     async save() {
       this.confirmAction = null
-      if (!this.editing && (!this.form.username.trim() || !this.form.password)) return
+      if (this.hasValidationErrors()) return
       try {
         if (this.editing) {
           const payload = { full_name: this.form.full_name, role: this.form.role, active: this.form.active }
@@ -158,8 +206,27 @@ export default {
         alert(err.response?.data?.error || 'เกิดข้อผิดพลาด')
       }
     },
+    hasValidationErrors() {
+      if (!this.editing) {
+        const u = this.form.username.trim()
+        if (!u || u.length < 4 || !/^[a-zA-Z0-9]+$/.test(u)) return true
+        if (!this.form.password || this.form.password.length < 6 || !/^[a-zA-Z0-9]+$/.test(this.form.password)) return true
+      } else if (this.form.password) {
+        if (this.form.password.length < 6 || !/^[a-zA-Z0-9]+$/.test(this.form.password)) return true
+      }
+      return false
+    },
     confirmSave() {
-      if (!this.editing && (!this.form.username.trim() || !this.form.password)) return
+      // Trigger validation display
+      if (!this.editing) {
+        this.validateUsername()
+        this.validatePassword()
+        if (!this.form.username.trim()) this.usernameError = 'กรุณากรอกชื่อผู้ใช้'
+        if (!this.form.password) this.passwordError = 'กรุณากรอกรหัสผ่าน'
+      } else if (this.form.password) {
+        this.validatePassword()
+      }
+      if (this.hasValidationErrors()) return
       this.confirmAction = {
         title: this.editing ? 'ยืนยันการแก้ไข' : 'ยืนยันการเพิ่ม',
         message: this.editing ? 'คุณต้องการบันทึกการแก้ไขผู้ใช้นี้หรือไม่?' : `ต้องการเพิ่มผู้ใช้ "${this.form.username}" หรือไม่?`,
@@ -200,19 +267,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
-}
-</style>

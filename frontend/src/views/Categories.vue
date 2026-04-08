@@ -7,8 +7,8 @@
 
     <div class="card">
       <div class="card-header">
-        <h2 class="section-title">📂 รายการหมวดหมู่</h2>
-        <button v-if="isAdmin" class="btn btn-primary" @click="openModal()">+ เพิ่มหมวดหมู่</button>
+        <h2 class="section-title"><span class="material-symbols-outlined">folder</span> รายการหมวดหมู่</h2>
+        <button v-if="isAdmin" class="btn btn-primary" @click="openModal()"><span class="material-symbols-outlined">add</span> เพิ่มหมวดหมู่</button>
       </div>
 
       <div v-if="isAdmin && selectedIds.length > 0" class="bulk-bar">
@@ -37,14 +37,14 @@
               <td>{{ cat.name }}</td>
               <td v-if="isAdmin">
                 <div class="btn-group">
-                  <button class="btn btn-sm btn-warning" @click="openModal(cat)">แก้ไข</button>
-                  <button class="btn btn-sm btn-outline-danger" @click="remove(cat.id)">ลบ</button>
+                  <button class="btn btn-sm btn-warning" @click="openModal(cat)"><span class="material-symbols-outlined">edit</span> แก้ไข</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="remove(cat.id)"><span class="material-symbols-outlined">delete</span> ลบ</button>
                 </div>
               </td>
             </tr>
             <tr v-if="categories.length === 0">
               <td :colspan="isAdmin ? 4 : 2" class="table-empty">
-                <span class="table-empty-icon">📂</span>
+                <span class="table-empty-icon"><span class="material-symbols-outlined">folder_off</span></span>
                 ยังไม่มีหมวดหมู่
               </td>
             </tr>
@@ -59,11 +59,12 @@
         <h3 class="modal-title">{{ editing ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่ใหม่' }}</h3>
         <div class="form-group">
           <label>ชื่อหมวดหมู่ <span class="required">*</span></label>
-          <input v-model="form.name" class="form-control" placeholder="เช่น เนื้อสัตว์, ผัก, เครื่องปรุง" @keyup.enter="confirmSave" />
+          <input v-model="form.name" class="form-control" :class="{ 'is-invalid': nameDuplicate }" placeholder="เช่น เนื้อสัตว์, ผัก, เครื่องปรุง" maxlength="100" @keyup.enter="confirmSave" @input="checkDuplicateName" />
+          <div v-if="nameDuplicate" class="inline-error"><span class="material-symbols-outlined">error</span> ชื่อหมวดหมู่นี้มีอยู่แล้ว</div>
         </div>
         <div class="modal-actions">
           <button class="btn btn-outline" @click="cancelForm">ยกเลิก</button>
-          <button class="btn btn-primary" @click="confirmSave">บันทึก</button>
+          <button class="btn btn-primary" :disabled="nameDuplicate" @click="confirmSave">บันทึก</button>
         </div>
       </div>
     </div>
@@ -103,7 +104,8 @@ export default {
       editing: null,
       form: { name: '' },
       selectedIds: [],
-      confirmAction: null
+      confirmAction: null,
+      nameDuplicate: false
     }
   },
   async mounted() {
@@ -114,9 +116,27 @@ export default {
       const { data } = await getCategories()
       this.categories = data
     },
+    checkDuplicateName() {
+      const name = this.form.name.trim().toLowerCase()
+      if (!name) { this.nameDuplicate = false; return }
+      const isDup = this.categories.some(c =>
+        c.name.trim().toLowerCase() === name && (!this.editing || c.id !== this.editing.id)
+      )
+      this.nameDuplicate = isDup
+      if (isDup) {
+        this.confirmAction = {
+          title: 'ชื่อซ้ำ',
+          message: `หมวดหมู่ "${this.form.name.trim()}" มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น`,
+          confirmText: 'ตกลง',
+          variant: 'warning',
+          onConfirm: () => { this.confirmAction = null }
+        }
+      }
+    },
     openModal(cat = null) {
       this.editing = cat
       this.form = cat ? { name: cat.name } : { name: '' }
+      this.nameDuplicate = false
       this.showModal = true
     },
     async save() {
@@ -130,7 +150,7 @@ export default {
       await this.load()
     },
     confirmSave() {
-      if (!this.form.name.trim()) return
+      if (!this.form.name.trim() || this.nameDuplicate) return
       this.confirmAction = {
         title: this.editing ? 'ยืนยันการแก้ไข' : 'ยืนยันการเพิ่ม',
         message: this.editing ? 'คุณต้องการบันทึกการแก้ไขหมวดหมู่นี้หรือไม่?' : `ต้องการเพิ่มหมวดหมู่ "${this.form.name}" หรือไม่?`,

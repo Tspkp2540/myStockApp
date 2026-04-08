@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"restaurant-stock/database"
 	"restaurant-stock/models"
@@ -139,6 +140,7 @@ func CreateIngredient(c *gin.Context) {
 		MinStock   float64 `json:"min_stock"`
 		Note       string  `json:"note"`
 		Price      float64 `json:"price"`
+		Date       string  `json:"date"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -173,6 +175,11 @@ func CreateIngredient(c *gin.Context) {
 			TotalCost:    body.Price * body.Quantity,
 			Note:         note,
 			UserID:       user.ID,
+		}
+		if body.Date != "" {
+			if parsed, err := time.Parse("2006-01-02", body.Date); err == nil {
+				txn.CreatedAt = parsed
+			}
 		}
 		database.DB.Create(&txn)
 	}

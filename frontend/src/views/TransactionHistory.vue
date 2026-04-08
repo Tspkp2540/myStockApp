@@ -7,8 +7,8 @@
 
     <!-- Tab switcher (admin only) -->
     <div class="tab-bar" v-if="isAdmin">
-      <button :class="['tab-btn', { active: activeTab === 'transactions' }]" @click="activeTab = 'transactions'">📋 รายการทั้งหมด</button>
-      <button :class="['tab-btn', { active: activeTab === 'deleted' }]" @click="switchToDeleted">🗑️ รายการที่ลบ <span v-if="deletedTransactions.length" class="tab-badge">{{ deletedTransactions.length }}</span></button>
+      <button :class="['tab-btn', { active: activeTab === 'transactions' }]" @click="activeTab = 'transactions'"><span class="material-symbols-outlined">receipt_long</span> รายการทั้งหมด</button>
+      <button :class="['tab-btn', { active: activeTab === 'deleted' }]" @click="switchToDeleted"><span class="material-symbols-outlined">delete_sweep</span> รายการที่ลบ <span v-if="deletedTransactions.length" class="tab-badge">{{ deletedTransactions.length }}</span></button>
     </div>
 
     <!-- ==================== ACTIVE TRANSACTIONS TAB ==================== -->
@@ -16,9 +16,9 @@
       <!-- Cost Summary Cards -->
       <div class="summary-cards" v-if="costSummary.length > 0">
         <div class="card summary-overview">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-            <h2 class="section-title">💰 สรุปยอดต้นทุนรายวัตถุดิบ</h2>
-            <button class="btn btn-sm btn-success" @click="exportCostSummary">📥 Export สรุปต้นทุน</button>
+          <div class="card-header">
+            <h2 class="section-title"><span class="material-symbols-outlined">payments</span> สรุปยอดต้นทุนรายวัตถุดิบ</h2>
+            <button class="btn btn-sm btn-success" @click="exportCostSummary"><span class="material-symbols-outlined">download</span> Export สรุปต้นทุน</button>
           </div>
           <div class="table-scroll">
             <table>
@@ -60,8 +60,8 @@
           <div class="toolbar-filters">
             <select v-model="filterType" class="form-control" @change="load">
               <option value="">ทุกประเภท</option>
-              <option value="in">▲ รับเข้า</option>
-              <option value="out">▼ จ่ายออก</option>
+              <option value="in">รับเข้า</option>
+              <option value="out">จ่ายออก</option>
             </select>
             <select v-model="filterIngredient" class="form-control" @change="load">
               <option :value="''">ทุกวัตถุดิบ</option>
@@ -77,8 +77,8 @@
             </div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn btn-sm btn-outline" @click="clearFilters" v-if="hasFilter">✕ ล้างตัวกรอง</button>
-            <button class="btn btn-sm btn-success" @click="exportTransactions">📥 Export Excel</button>
+            <button class="btn btn-sm btn-outline" @click="clearFilters" v-if="hasFilter"><span class="material-symbols-outlined">filter_list_off</span> ล้างตัวกรอง</button>
+            <button class="btn btn-sm btn-success" @click="exportTransactions"><span class="material-symbols-outlined">download</span> Export Excel</button>
           </div>
         </div>
 
@@ -108,7 +108,8 @@
                 <td>{{ txn.ingredient?.category?.name || '-' }}</td>
                 <td>
                   <span :class="['badge', txn.type === 'in' ? 'badge-in' : 'badge-out']">
-                    {{ txn.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
+                    <span class="material-symbols-outlined">{{ txn.type === 'in' ? 'arrow_upward' : 'arrow_downward' }}</span>
+                    {{ txn.type === 'in' ? 'รับเข้า' : 'จ่ายออก' }}
                   </span>
                 </td>
                 <td class="text-right">{{ txn.quantity }}</td>
@@ -118,12 +119,12 @@
                 <td class="nowrap">{{ txn.user?.full_name || txn.user?.username || '-' }}</td>
                 <td>{{ txn.note || '-' }}</td>
                 <td v-if="isAdmin">
-                  <button class="btn btn-sm btn-outline-danger" @click="openDeleteModal(txn)">ลบ</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="openDeleteModal(txn)"><span class="material-symbols-outlined">delete</span> ลบ</button>
                 </td>
               </tr>
               <tr v-if="transactions.length === 0">
                 <td :colspan="isAdmin ? 12 : 11" class="table-empty">
-                  <span class="table-empty-icon">📋</span>
+                  <span class="table-empty-icon"><span class="material-symbols-outlined">inbox</span></span>
                   ยังไม่มีรายการเคลื่อนไหว
                 </td>
               </tr>
@@ -142,7 +143,7 @@
     <template v-if="activeTab === 'deleted'">
       <div class="card">
         <div class="toolbar">
-          <h2 class="section-title">🗑️ รายการที่ถูกลบ</h2>
+          <h2 class="section-title"><span class="material-symbols-outlined">delete_sweep</span> รายการที่ถูกลบ</h2>
         </div>
         <div class="table-scroll">
           <table>
@@ -169,7 +170,8 @@
                 <td>{{ d.ingredient?.name || '-' }}</td>
                 <td>
                   <span :class="['badge', d.type === 'in' ? 'badge-in' : 'badge-out']">
-                    {{ d.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
+                    <span class="material-symbols-outlined">{{ d.type === 'in' ? 'arrow_upward' : 'arrow_downward' }}</span>
+                    {{ d.type === 'in' ? 'รับเข้า' : 'จ่ายออก' }}
                   </span>
                 </td>
                 <td class="text-right">{{ d.quantity }}</td>
@@ -180,12 +182,12 @@
                 <td class="nowrap">{{ d.deleted_by?.full_name || d.deleted_by?.username || '-' }}</td>
                 <td class="nowrap">{{ formatDate(d.deleted_at) }}</td>
                 <td>
-                  <button class="btn btn-sm btn-primary" @click="confirmRestore(d)">↩ นำกลับ</button>
+                  <button class="btn btn-sm btn-primary" @click="confirmRestore(d)"><span class="material-symbols-outlined">restore</span> นำกลับ</button>
                 </td>
               </tr>
               <tr v-if="deletedTransactions.length === 0">
                 <td colspan="12" class="table-empty">
-                  <span class="table-empty-icon">✅</span>
+                  <span class="table-empty-icon"><span class="material-symbols-outlined">check_circle</span></span>
                   ไม่มีรายการที่ถูกลบ
                 </td>
               </tr>
@@ -198,7 +200,7 @@
     <!-- Delete Reason Modal -->
     <div class="modal-overlay" v-if="showDeleteModal" @click.self="showDeleteModal = false">
       <div class="modal">
-        <div class="confirm-icon confirm-icon-danger">⚠️</div>
+        <div class="confirm-icon confirm-icon-danger"><span class="material-symbols-outlined">warning</span></div>
         <h3 class="confirm-title">ลบรายการเคลื่อนไหว</h3>
         <p class="confirm-message">
           ลบรายการ "{{ deleteTarget?.ingredient?.name }}"
@@ -208,7 +210,7 @@
         </p>
         <div class="form-group">
           <label>เหตุผลในการลบ <span class="required">*</span></label>
-          <textarea v-model="deleteReason" class="form-control" rows="3" placeholder="กรุณาระบุเหตุผลในการลบรายการนี้..."></textarea>
+          <textarea v-model="deleteReason" class="form-control" rows="3" maxlength="100" placeholder="กรุณาระบุเหตุผลในการลบรายการนี้..."></textarea>
         </div>
         <div class="modal-actions">
           <button class="btn btn-outline" @click="showDeleteModal = false">ยกเลิก</button>
@@ -417,118 +419,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.tab-bar {
-  display: flex;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.tab-btn {
-  padding: 0.5rem 1.2rem;
-  border: 2px solid var(--gray-300);
-  background: white;
-  border-radius: var(--radius) var(--radius) 0 0;
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--gray-600);
-  transition: all 0.2s;
-}
-
-.tab-btn.active {
-  border-color: var(--primary);
-  border-bottom-color: white;
-  color: var(--primary);
-  background: white;
-}
-
-.tab-badge {
-  background: var(--danger);
-  color: white;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 10px;
-  margin-left: 0.3rem;
-}
-
-.summary-cards {
-  margin-bottom: var(--space-lg);
-}
-
-.summary-overview .table-scroll {
-  margin-top: var(--space-sm);
-}
-
-.table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.table-scroll table {
-  min-width: 900px;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.text-success {
-  color: var(--success);
-}
-
-.text-danger {
-  color: var(--danger);
-}
-
-.total-row {
-  background: var(--gray-50);
-  border-top: 2px solid var(--gray-300);
-}
-
-.total-row td {
-  padding-top: var(--space-sm);
-  padding-bottom: var(--space-sm);
-}
-
-.nowrap {
-  white-space: nowrap;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.toolbar-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  align-items: flex-end;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: var(--space-xs);
-  align-items: center;
-}
-
-.date-filter {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.date-filter label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--gray-600);
-}
-
-.date-filter input {
-  width: 150px;
-}
-</style>

@@ -60,6 +60,14 @@ img {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.section-title .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--color-primary);
 }
 
 .text-muted {
@@ -87,4 +95,10 @@ img {
 ::selection {
   background: var(--color-primary-light);
   color: var(--color-primary);
+}
+
+/* ── Material Symbols Sizing ── */
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

@@ -2,7 +2,7 @@
   <div v-if="ingredient">
     <div class="page-header">
       <div class="page-header-top">
-        <router-link to="/ingredients" class="btn btn-outline btn-sm">← กลับ</router-link>
+        <router-link to="/ingredients" class="btn btn-outline btn-sm"><span class="material-symbols-outlined">arrow_back</span> กลับ</router-link>
       </div>
       <h1 class="page-title">{{ ingredient.name }}</h1>
       <p class="page-subtitle">รายละเอียดการเคลื่อนไหวของวัตถุดิบ</p>
@@ -11,7 +11,7 @@
     <!-- Ingredient Info Card -->
     <div class="card">
       <div class="card-header">
-        <h2 class="section-title">📦 ข้อมูลวัตถุดิบ</h2>
+        <h2 class="section-title"><span class="material-symbols-outlined">inventory_2</span> ข้อมูลวัตถุดิบ</h2>
       </div>
       <div class="info-grid">
         <div class="info-item"><strong>ชื่อ:</strong> {{ ingredient.name }}</div>
@@ -25,8 +25,8 @@
         <div class="info-item"><strong>สต็อคขั้นต่ำ:</strong> {{ ingredient.min_stock }} {{ ingredient.unit?.name }}</div>
         <div class="info-item">
           <strong>สถานะ:</strong>
-          <span v-if="ingredient.quantity <= ingredient.min_stock" class="badge badge-low">⚠ ต่ำ</span>
-          <span v-else class="badge badge-ok">✓ ปกติ</span>
+          <span v-if="ingredient.quantity <= ingredient.min_stock" class="badge badge-low"><span class="material-symbols-outlined">error</span> ต่ำ</span>
+          <span v-else class="badge badge-ok"><span class="material-symbols-outlined">check_circle</span> ปกติ</span>
         </div>
       </div>
     </div>
@@ -34,25 +34,25 @@
     <!-- Stock Transaction Form -->
     <div class="card">
       <div class="card-header">
-        <h2 class="section-title">📝 รับ / จ่าย สต็อค — {{ ingredient.name }}</h2>
+        <h2 class="section-title"><span class="material-symbols-outlined">swap_vert</span> รับ / จ่าย สต็อค — {{ ingredient.name }}</h2>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>ประเภท <span class="required">*</span></label>
           <select v-model="form.type" class="form-control">
-            <option value="in">▲ รับเข้า (Stock In)</option>
-            <option value="out">▼ จ่ายออก (Stock Out)</option>
+            <option value="in">รับเข้า (Stock In)</option>
+            <option value="out">จ่ายออก (Stock Out)</option>
           </select>
         </div>
         <div class="form-group">
           <label>จำนวน <span class="required">*</span></label>
-          <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" />
+          <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" @input="limitNumber($event, 'quantity')" />
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>ราคาต่อหน่วย (฿) <span v-if="form.type === 'in'" class="required">*</span></label>
-          <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+          <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" @input="limitNumber($event, 'price')" />
         </div>
         <div class="form-group">
           <label>รวมเป็นเงิน</label>
@@ -63,10 +63,10 @@
       </div>
       <div class="form-group">
         <label>หมายเหตุ / เหตุผล <span class="required">*</span></label>
-        <input v-model="form.note" class="form-control" :placeholder="form.type === 'in' ? 'เช่น ซื้อจากตลาด, รับจากซัพพลายเออร์' : 'เช่น ใช้ทำอาหาร, หมดอายุ, เสียหาย'" />
+        <input v-model="form.note" class="form-control" maxlength="100" :placeholder="form.type === 'in' ? 'เช่น ซื้อจากตลาด, รับจากซัพพลายเออร์' : 'เช่น ใช้ทำอาหาร, หมดอายุ, เสียหาย'" />
       </div>
       <button class="btn btn-lg btn-success" @click="confirmSubmit">
-        บันทึกรายการ
+        <span class="material-symbols-outlined">save</span> บันทึกรายการ
       </button>
       <div v-if="message" :class="['alert', messageType]">
         {{ message }}
@@ -75,9 +75,9 @@
 
     <!-- Transaction History for this ingredient -->
     <div class="card">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-        <h2 class="section-title">📋 ประวัติการเคลื่อนไหว — {{ ingredient.name }}</h2>
-        <button class="btn btn-sm btn-success" @click="exportHistory" v-if="transactions.length > 0">📥 Export Excel</button>
+      <div class="card-header">
+        <h2 class="section-title"><span class="material-symbols-outlined">receipt_long</span> ประวัติการเคลื่อนไหว — {{ ingredient.name }}</h2>
+        <button class="btn btn-sm btn-success" @click="exportHistory" v-if="transactions.length > 0"><span class="material-symbols-outlined">download</span> Export Excel</button>
       </div>
       <div class="table-scroll">
         <table>
@@ -100,7 +100,8 @@
               <td class="nowrap">{{ formatDate(txn.created_at) }}</td>
               <td>
                 <span :class="['badge', txn.type === 'in' ? 'badge-in' : 'badge-out']">
-                  {{ txn.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
+                  <span class="material-symbols-outlined">{{ txn.type === 'in' ? 'arrow_upward' : 'arrow_downward' }}</span>
+                  {{ txn.type === 'in' ? 'รับเข้า' : 'จ่ายออก' }}
                 </span>
               </td>
               <td class="text-right">{{ txn.quantity }}</td>
@@ -112,7 +113,7 @@
             </tr>
             <tr v-if="transactions.length === 0">
               <td colspan="9" class="table-empty">
-                <span class="table-empty-icon">📋</span>
+                <span class="table-empty-icon"><span class="material-symbols-outlined">inbox</span></span>
                 ยังไม่มีรายการเคลื่อนไหวสำหรับวัตถุดิบนี้
               </td>
             </tr>
@@ -136,7 +137,7 @@
       @cancel="confirmAction = null"
     />
   </div>
-  <div v-else class="card" style="text-align:center;padding:2rem;">
+  <div v-else class="card loading-state">
     กำลังโหลด...
   </div>
 </template>
@@ -187,6 +188,14 @@ export default {
     formatMoney(val) {
       return Number(val || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     },
+    limitNumber(e, field) {
+      const raw = e.target.value.replace(/[^0-9.]/g, '')
+      const parts = raw.split('.')
+      let clean = parts[0].slice(0, 7)
+      if (parts.length > 1) clean += '.' + parts[1].slice(0, 2)
+      e.target.value = clean
+      this.form[field] = clean === '' ? 0 : Number(clean)
+    },
     confirmSubmit() {
       if (this.form.quantity <= 0) {
         this.message = 'กรุณาระบุจำนวน'
@@ -223,7 +232,7 @@ export default {
           price: this.form.price || 0,
           note: this.form.note
         })
-        this.message = '✓ บันทึกสำเร็จ!'
+        this.message = 'บันทึกสำเร็จ!'
         this.messageType = 'alert-success'
         this.form.quantity = 0
         this.form.price = 0
@@ -261,66 +270,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.page-header-top {
-  margin-bottom: var(--space-sm);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-sm);
-}
-
-.info-item {
-  padding: var(--space-xs);
-}
-
-.total-cost-display {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary);
-  padding: 0.6rem 1rem;
-  background: var(--gray-50);
-  border-radius: var(--radius);
-  border: 1px solid var(--gray-200);
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-}
-
-.table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.table-scroll table {
-  min-width: 700px;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.text-danger {
-  color: var(--danger);
-}
-
-.total-row {
-  background: var(--gray-50);
-  border-top: 2px solid var(--gray-300);
-}
-
-.nowrap {
-  white-space: nowrap;
-}
-
-.alert {
-  margin-top: var(--space-md);
-}
-
-.btn-lg {
-  margin-top: var(--space-sm);
-}
-</style>

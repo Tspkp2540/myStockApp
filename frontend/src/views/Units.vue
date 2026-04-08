@@ -7,8 +7,8 @@
 
     <div class="card">
       <div class="card-header">
-        <h2 class="section-title">📏 รายการหน่วยนับ</h2>
-        <button v-if="isAdmin" class="btn btn-primary" @click="openModal()">+ เพิ่มหน่วย</button>
+        <h2 class="section-title"><span class="material-symbols-outlined">straighten</span> รายการหน่วยนับ</h2>
+        <button v-if="isAdmin" class="btn btn-primary" @click="openModal()"><span class="material-symbols-outlined">add</span> เพิ่มหน่วย</button>
       </div>
 
       <div v-if="isAdmin && selectedIds.length > 0" class="bulk-bar">
@@ -37,14 +37,14 @@
               <td>{{ unit.name }}</td>
               <td v-if="isAdmin">
                 <div class="btn-group">
-                  <button class="btn btn-sm btn-warning" @click="openModal(unit)">แก้ไข</button>
-                  <button class="btn btn-sm btn-outline-danger" @click="remove(unit.id)">ลบ</button>
+                  <button class="btn btn-sm btn-warning" @click="openModal(unit)"><span class="material-symbols-outlined">edit</span> แก้ไข</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="remove(unit.id)"><span class="material-symbols-outlined">delete</span> ลบ</button>
                 </div>
               </td>
             </tr>
             <tr v-if="units.length === 0">
               <td :colspan="isAdmin ? 4 : 2" class="table-empty">
-                <span class="table-empty-icon">📏</span>
+                <span class="table-empty-icon"><span class="material-symbols-outlined">rule</span></span>
                 ยังไม่มีหน่วย
               </td>
             </tr>
@@ -59,11 +59,12 @@
         <h3 class="modal-title">{{ editing ? 'แก้ไขหน่วย' : 'เพิ่มหน่วยใหม่' }}</h3>
         <div class="form-group">
           <label>ชื่อหน่วย <span class="required">*</span></label>
-          <input v-model="form.name" class="form-control" placeholder="เช่น กก., ลิตร, ชิ้น" @keyup.enter="confirmSave" />
+          <input v-model="form.name" class="form-control" :class="{ 'is-invalid': nameDuplicate }" placeholder="เช่น กก., ลิตร, ชิ้น" maxlength="100" @keyup.enter="confirmSave" @input="checkDuplicateName" />
+          <div v-if="nameDuplicate" class="inline-error"><span class="material-symbols-outlined">error</span> ชื่อหน่วยนี้มีอยู่แล้ว</div>
         </div>
         <div class="modal-actions">
           <button class="btn btn-outline" @click="cancelForm">ยกเลิก</button>
-          <button class="btn btn-primary" @click="confirmSave">บันทึก</button>
+          <button class="btn btn-primary" :disabled="nameDuplicate" @click="confirmSave">บันทึก</button>
         </div>
       </div>
     </div>
@@ -103,7 +104,8 @@ export default {
       editing: null,
       form: { name: '' },
       selectedIds: [],
-      confirmAction: null
+      confirmAction: null,
+      nameDuplicate: false
     }
   },
   async mounted() {
@@ -114,9 +116,27 @@ export default {
       const { data } = await getUnits()
       this.units = data
     },
+    checkDuplicateName() {
+      const name = this.form.name.trim().toLowerCase()
+      if (!name) { this.nameDuplicate = false; return }
+      const isDup = this.units.some(u =>
+        u.name.trim().toLowerCase() === name && (!this.editing || u.id !== this.editing.id)
+      )
+      this.nameDuplicate = isDup
+      if (isDup) {
+        this.confirmAction = {
+          title: 'ชื่อซ้ำ',
+          message: `หน่วย "${this.form.name.trim()}" มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น`,
+          confirmText: 'ตกลง',
+          variant: 'warning',
+          onConfirm: () => { this.confirmAction = null }
+        }
+      }
+    },
     openModal(unit = null) {
       this.editing = unit
       this.form = unit ? { name: unit.name } : { name: '' }
+      this.nameDuplicate = false
       this.showModal = true
     },
     async save() {
@@ -130,7 +150,7 @@ export default {
       await this.load()
     },
     confirmSave() {
-      if (!this.form.name.trim()) return
+      if (!this.form.name.trim() || this.nameDuplicate) return
       this.confirmAction = {
         title: this.editing ? 'ยืนยันการแก้ไข' : 'ยืนยันการเพิ่ม',
         message: this.editing ? 'คุณต้องการบันทึกการแก้ไขหน่วยนี้หรือไม่?' : `ต้องการเพิ่มหน่วย "${this.form.name}" หรือไม่?`,
