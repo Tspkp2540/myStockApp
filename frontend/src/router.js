@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from './composables/useAuth.js'
+import Home from './views/Home.vue'
 import Login from './views/Login.vue'
 import Dashboard from './views/Dashboard.vue'
 import Ingredients from './views/Ingredients.vue'
@@ -11,6 +12,7 @@ import IngredientDetail from './views/IngredientDetail.vue'
 import Users from './views/Users.vue'
 
 const routes = [
+  { path: '/home', name: 'Home', component: Home, meta: { public: true, isHome: true } },
   { path: '/login', name: 'Login', component: Login, meta: { public: true } },
   { path: '/', name: 'Dashboard', component: Dashboard },
   { path: '/ingredients', name: 'Ingredients', component: Ingredients },
@@ -35,12 +37,13 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (to.meta.public) {
+    if (to.meta.isHome) return next()
     if (isLoggedIn()) return next('/')
     return next()
   }
 
   if (!isLoggedIn()) {
-    return next('/login')
+    return next('/home')
   }
 
   if (to.meta.admin && !isAdmin()) {

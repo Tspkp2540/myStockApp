@@ -1,7 +1,7 @@
 <template>
-  <div id="app" :class="{ 'app-layout': isLoggedIn }">
+  <div id="app" :class="{ 'app-layout': showLayout }">
     <!-- Sidebar -->
-    <aside v-if="isLoggedIn" class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
+    <aside v-if="showLayout" class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
       <div class="sidebar-header">
         <span class="material-symbols-outlined sidebar-logo-icon">restaurant</span>
         <div class="sidebar-brand">
@@ -70,15 +70,15 @@
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="closeSidebar"></div>
 
     <!-- Main content area -->
-    <div :class="{ 'main-wrapper': isLoggedIn }">
-      <header v-if="isLoggedIn" class="mobile-topbar">
+    <div :class="{ 'main-wrapper': showLayout }">
+      <header v-if="showLayout" class="mobile-topbar">
         <button class="mobile-topbar-btn" @click="toggleSidebar">
           <span class="material-symbols-outlined">{{ sidebarOpen ? 'close' : 'menu' }}</span>
         </button>
         <span class="mobile-topbar-title">StockPro</span>
       </header>
 
-      <main :class="isLoggedIn ? 'content' : ''">
+      <main :class="showLayout ? 'content' : ''">
         <router-view v-slot="{ Component }">
           <transition name="page" mode="out-in">
             <component :is="Component" />
@@ -123,6 +123,12 @@ export default {
     isLoggedIn() {
       return !!this.authState?.user
     },
+    isHomePage() {
+      return this.$route?.name === 'Home'
+    },
+    showLayout() {
+      return this.isLoggedIn && !this.isHomePage
+    },
     isAdmin() {
       return this.authState?.user?.role === 'admin'
     }
@@ -138,7 +144,7 @@ export default {
       this.showLogoutConfirm = false
       const { logout } = useAuth()
       await logout()
-      this.$router.push('/login')
+      this.$router.push('/home')
     }
   }
 }
