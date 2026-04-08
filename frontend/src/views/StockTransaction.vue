@@ -30,14 +30,14 @@
           <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" />
         </div>
         <div class="form-group">
-          <label>ราคาต่อหน่วย (ฺ)</label>
+          <label>ราคาต่อหน่วย (ฺ) <span v-if="form.type === 'in'" class="required">*</span></label>
           <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>หมายเหตุ</label>
-          <input v-model="form.note" class="form-control" placeholder="เช่น ซื้อจากตลาด, ใช้ทำอาหาร" />
+          <label>หมายเหตุ / เหตุผล <span class="required">*</span></label>
+          <input v-model="form.note" class="form-control" :placeholder="form.type === 'in' ? 'เช่น ซื้อจากตลาด, รับจากซัพพลายเออร์' : 'เช่น ใช้ทำอาหาร, หมดอายุ, เสียหาย'" /> />
         </div>
         <div class="form-group">
           <label>รวมเป็นเงิน</label>
@@ -116,6 +116,16 @@ export default {
     confirmSubmit() {
       if (!this.form.ingredient_id || this.form.quantity <= 0) {
         this.message = 'กรุณาเลือกวัตถุดิบและระบุจำนวน'
+        this.messageType = 'alert-error'
+        return
+      }
+      if (!this.form.note.trim()) {
+        this.message = 'กรุณาระบุหมายเหตุ / เหตุผล'
+        this.messageType = 'alert-error'
+        return
+      }
+      if (this.form.type === 'in' && (!this.form.price || this.form.price <= 0)) {
+        this.message = 'กรุณาระบุราคาต่อหน่วยสำหรับการรับเข้า'
         this.messageType = 'alert-error'
         return
       }
