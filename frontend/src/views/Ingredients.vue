@@ -28,11 +28,17 @@
       </div>
 
       <div class="table-wrapper">
-        <table>
+        <table v-for="group in groupedIngredients" :key="group.category" class="grouped-table">
           <thead>
+            <tr class="category-header-row">
+              <th :colspan="isAdmin ? 9 : 7" class="category-group-header">
+                📁 {{ group.category }}
+                <span class="category-count">({{ group.items.length }} รายการ)</span>
+              </th>
+            </tr>
             <tr>
               <th v-if="isAdmin" class="table-checkbox">
-                <input type="checkbox" :checked="allSelected" @change="toggleAll" />
+                <input type="checkbox" :checked="isGroupAllSelected(group.items)" @change="toggleGroup($event, group.items)" />
               </th>
               <th>#</th>
               <th>ชื่อ</th>
@@ -45,7 +51,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(ing, i) in ingredients" :key="ing.id">
+            <tr v-for="(ing, i) in group.items" :key="ing.id">
               <td v-if="isAdmin" class="table-checkbox">
                 <input type="checkbox" :value="ing.id" v-model="selectedIds" />
               </td>
@@ -66,14 +72,12 @@
                 </div>
               </td>
             </tr>
-            <tr v-if="ingredients.length === 0">
-              <td :colspan="isAdmin ? 9 : 7" class="table-empty">
-                <span class="table-empty-icon">📦</span>
-                ยังไม่มีวัตถุดิบ — กดปุ่ม "+ เพิ่มวัตถุดิบ" เพื่อเริ่มต้น
-              </td>
-            </tr>
           </tbody>
         </table>
+        <div v-if="ingredients.length === 0" class="table-empty" style="padding: 2rem; text-align: center;">
+          <span class="table-empty-icon">📦</span>
+          ยังไม่มีวัตถุดิบ — กดปุ่ม "+ เพิ่มวัตถุดิบ" เพื่อเริ่มต้น
+        </div>
       </div>
     </div>
 
@@ -188,6 +192,18 @@ export default {
     },
     allSelected() {
       return this.ingredients.length > 0 && this.selectedIds.length === this.ingredients.length
+    },
+    groupedIngredients() {
+      const groups = {}
+      this.ingredients.forEach(ing => {
+        const cat = ing.category?.name || 'ไม่มีหมวดหมู่'
+        if (!groups[cat]) groups[cat] = []
+        groups[cat].push(ing)
+      })
+      return Object.keys(groups).sort().map(cat => ({
+        category: cat,
+        items: groups[cat]
+      }))
     }
   },
   data() {
@@ -306,6 +322,18 @@ export default {
     toggleAll(e) {
       this.selectedIds = e.target.checked ? this.ingredients.map(i => i.id) : []
     },
+    isGroupAllSelected(items) {
+      return items.length > 0 && items.every(i => this.selectedIds.includes(i.id))
+    },
+    toggleGroup(e, items) {
+      const ids = items.map(i => i.id)
+      if (e.target.checked) {
+        const newIds = ids.filter(id => !this.selectedIds.includes(id))
+        this.selectedIds = [...this.selectedIds, ...newIds]
+      } else {
+        this.selectedIds = this.selectedIds.filter(id => !ids.includes(id))
+      }
+    },
     confirmAddCategory() {
       if (!this.newCategoryName.trim()) return
       this.confirmAction = {
@@ -371,3 +399,27 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.grouped-table {
+  width: 100%;
+  margin-bottom: var(--space-lg);
+}
+
+.category-header-row .category-group-header {
+  background: var(--primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.category-count {
+  font-weight: 400;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-left: 0.5rem;
+}
+</style>

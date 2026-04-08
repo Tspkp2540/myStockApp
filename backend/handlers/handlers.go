@@ -236,7 +236,13 @@ func GetTransactions(c *gin.Context) {
 	if txnType := c.Query("type"); txnType != "" {
 		query = query.Where("type = ?", txnType)
 	}
-	query.Limit(100).Find(&txns)
+	if dateFrom := c.Query("date_from"); dateFrom != "" {
+		query = query.Where("created_at >= ?", dateFrom+"T00:00:00Z")
+	}
+	if dateTo := c.Query("date_to"); dateTo != "" {
+		query = query.Where("created_at <= ?", dateTo+"T23:59:59Z")
+	}
+	query.Limit(500).Find(&txns)
 	c.JSON(http.StatusOK, txns)
 }
 
