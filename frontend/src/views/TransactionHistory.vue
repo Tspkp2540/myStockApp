@@ -5,145 +5,261 @@
       <p class="page-subtitle">ดูรายการรับเข้า-จ่ายออกทั้งหมด</p>
     </div>
 
-    <!-- Cost Summary Cards -->
-    <div class="summary-cards" v-if="costSummary.length > 0">
-      <div class="card summary-overview">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <h2 class="section-title">💰 สรุปยอดต้นทุนรายวัตถุดิบ</h2>
-          <button class="btn btn-sm btn-success" @click="exportCostSummary">📥 Export สรุปต้นทุน</button>
+    <!-- Tab switcher (admin only) -->
+    <div class="tab-bar" v-if="isAdmin">
+      <button :class="['tab-btn', { active: activeTab === 'transactions' }]" @click="activeTab = 'transactions'">📋 รายการทั้งหมด</button>
+      <button :class="['tab-btn', { active: activeTab === 'deleted' }]" @click="switchToDeleted">🗑️ รายการที่ลบ <span v-if="deletedTransactions.length" class="tab-badge">{{ deletedTransactions.length }}</span></button>
+    </div>
+
+    <!-- ==================== ACTIVE TRANSACTIONS TAB ==================== -->
+    <template v-if="activeTab === 'transactions'">
+      <!-- Cost Summary Cards -->
+      <div class="summary-cards" v-if="costSummary.length > 0">
+        <div class="card summary-overview">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2 class="section-title">💰 สรุปยอดต้นทุนรายวัตถุดิบ</h2>
+            <button class="btn btn-sm btn-success" @click="exportCostSummary">📥 Export สรุปต้นทุน</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>วัตถุดิบ</th>
+                  <th class="text-right">รับเข้า (จำนวน)</th>
+                  <th class="text-right">ต้นทุนรับเข้า (฿)</th>
+                  <th class="text-right">จ่ายออก (จำนวน)</th>
+                  <th class="text-right">ต้นทุนจ่ายออก (฿)</th>
+                  <th class="text-right">ต้นทุนสุทธิ (฿)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="s in costSummaryWithNames" :key="s.ingredient_id">
+                  <td>{{ s.name }}</td>
+                  <td class="text-right">{{ s.total_in }}</td>
+                  <td class="text-right text-success">{{ formatMoney(s.cost_in) }}</td>
+                  <td class="text-right">{{ s.total_out }}</td>
+                  <td class="text-right text-danger">{{ formatMoney(s.cost_out) }}</td>
+                  <td class="text-right"><strong>{{ formatMoney(s.cost_in - s.cost_out) }}</strong></td>
+                </tr>
+                <tr class="total-row">
+                  <td><strong>รวมทั้งหมด</strong></td>
+                  <td class="text-right"><strong>{{ totalSummary.totalIn }}</strong></td>
+                  <td class="text-right text-success"><strong>{{ formatMoney(totalSummary.costIn) }}</strong></td>
+                  <td class="text-right"><strong>{{ totalSummary.totalOut }}</strong></td>
+                  <td class="text-right text-danger"><strong>{{ formatMoney(totalSummary.costOut) }}</strong></td>
+                  <td class="text-right"><strong>{{ formatMoney(totalSummary.costIn - totalSummary.costOut) }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="toolbar-filters">
+            <select v-model="filterType" class="form-control" @change="load">
+              <option value="">ทุกประเภท</option>
+              <option value="in">▲ รับเข้า</option>
+              <option value="out">▼ จ่ายออก</option>
+            </select>
+            <select v-model="filterIngredient" class="form-control" @change="load">
+              <option :value="''">ทุกวัตถุดิบ</option>
+              <option v-for="ing in ingredients" :key="ing.id" :value="ing.id">{{ ing.name }}</option>
+            </select>
+            <div class="date-filter">
+              <label>จาก</label>
+              <input type="date" v-model="dateFrom" class="form-control" @change="load" />
+            </div>
+            <div class="date-filter">
+              <label>ถึง</label>
+              <input type="date" v-model="dateTo" class="form-control" @change="load" />
+            </div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn btn-sm btn-outline" @click="clearFilters" v-if="hasFilter">✕ ล้างตัวกรอง</button>
+            <button class="btn btn-sm btn-success" @click="exportTransactions">📥 Export Excel</button>
+          </div>
+        </div>
+
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
+                <th>#</th>
+                <th>วันที่</th>
                 <th>วัตถุดิบ</th>
-                <th class="text-right">รับเข้า (จำนวน)</th>
-                <th class="text-right">ต้นทุนรับเข้า (฿)</th>
-                <th class="text-right">จ่ายออก (จำนวน)</th>
-                <th class="text-right">ต้นทุนจ่ายออก (฿)</th>
-                <th class="text-right">ต้นทุนสุทธิ (฿)</th>
+                <th>หมวดหมู่</th>
+                <th>ประเภท</th>
+                <th class="text-right">จำนวน</th>
+                <th>หน่วย</th>
+                <th class="text-right">ราคา/หน่วย</th>
+                <th class="text-right">รวมเงิน</th>
+                <th>ผู้ทำรายการ</th>
+                <th>หมายเหตุ</th>
+                <th v-if="isAdmin">จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="s in costSummaryWithNames" :key="s.ingredient_id">
-                <td>{{ s.name }}</td>
-                <td class="text-right">{{ s.total_in }}</td>
-                <td class="text-right text-success">{{ formatMoney(s.cost_in) }}</td>
-                <td class="text-right">{{ s.total_out }}</td>
-                <td class="text-right text-danger">{{ formatMoney(s.cost_out) }}</td>
-                <td class="text-right"><strong>{{ formatMoney(s.cost_in - s.cost_out) }}</strong></td>
+              <tr v-for="(txn, i) in transactions" :key="txn.id">
+                <td>{{ i + 1 }}</td>
+                <td class="nowrap">{{ formatDate(txn.created_at) }}</td>
+                <td>{{ txn.ingredient?.name }}</td>
+                <td>{{ txn.ingredient?.category?.name || '-' }}</td>
+                <td>
+                  <span :class="['badge', txn.type === 'in' ? 'badge-in' : 'badge-out']">
+                    {{ txn.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
+                  </span>
+                </td>
+                <td class="text-right">{{ txn.quantity }}</td>
+                <td>{{ txn.ingredient?.unit?.name }}</td>
+                <td class="text-right">{{ formatMoney(txn.price) }}</td>
+                <td class="text-right"><strong>{{ formatMoney(txn.total_cost) }}</strong></td>
+                <td class="nowrap">{{ txn.user?.full_name || txn.user?.username || '-' }}</td>
+                <td>{{ txn.note || '-' }}</td>
+                <td v-if="isAdmin">
+                  <button class="btn btn-sm btn-outline-danger" @click="openDeleteModal(txn)">ลบ</button>
+                </td>
               </tr>
-              <tr class="total-row">
-                <td><strong>รวมทั้งหมด</strong></td>
-                <td class="text-right"><strong>{{ totalSummary.totalIn }}</strong></td>
-                <td class="text-right text-success"><strong>{{ formatMoney(totalSummary.costIn) }}</strong></td>
-                <td class="text-right"><strong>{{ totalSummary.totalOut }}</strong></td>
-                <td class="text-right text-danger"><strong>{{ formatMoney(totalSummary.costOut) }}</strong></td>
-                <td class="text-right"><strong>{{ formatMoney(totalSummary.costIn - totalSummary.costOut) }}</strong></td>
+              <tr v-if="transactions.length === 0">
+                <td :colspan="isAdmin ? 12 : 11" class="table-empty">
+                  <span class="table-empty-icon">📋</span>
+                  ยังไม่มีรายการเคลื่อนไหว
+                </td>
+              </tr>
+              <tr v-if="transactions.length > 0" class="total-row">
+                <td colspan="8" class="text-right"><strong>รวมทั้งหมด</strong></td>
+                <td class="text-right"><strong>{{ formatMoney(transactionTotal) }}</strong></td>
+                <td :colspan="isAdmin ? 3 : 2"></td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </template>
 
-    <div class="card">
-      <div class="toolbar">
-        <div class="toolbar-filters">
-          <select v-model="filterType" class="form-control" @change="load">
-            <option value="">ทุกประเภท</option>
-            <option value="in">▲ รับเข้า</option>
-            <option value="out">▼ จ่ายออก</option>
-          </select>
-          <select v-model="filterIngredient" class="form-control" @change="load">
-            <option :value="''">ทุกวัตถุดิบ</option>
-            <option v-for="ing in ingredients" :key="ing.id" :value="ing.id">{{ ing.name }}</option>
-          </select>
-          <div class="date-filter">
-            <label>จาก</label>
-            <input type="date" v-model="dateFrom" class="form-control" @change="load" />
-          </div>
-          <div class="date-filter">
-            <label>ถึง</label>
-            <input type="date" v-model="dateTo" class="form-control" @change="load" />
-          </div>
+    <!-- ==================== DELETED TRANSACTIONS TAB ==================== -->
+    <template v-if="activeTab === 'deleted'">
+      <div class="card">
+        <div class="toolbar">
+          <h2 class="section-title">🗑️ รายการที่ถูกลบ</h2>
         </div>
-        <div class="toolbar-actions">
-          <button class="btn btn-sm btn-outline" @click="clearFilters" v-if="hasFilter">✕ ล้างตัวกรอง</button>
-          <button class="btn btn-sm btn-success" @click="exportTransactions">📥 Export Excel</button>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>วันที่ทำรายการเดิม</th>
+                <th>วัตถุดิบ</th>
+                <th>ประเภท</th>
+                <th class="text-right">จำนวน</th>
+                <th class="text-right">รวมเงิน</th>
+                <th>ผู้ทำรายการเดิม</th>
+                <th>หมายเหตุเดิม</th>
+                <th>เหตุผลที่ลบ</th>
+                <th>ลบโดย</th>
+                <th>วันที่ลบ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(d, i) in deletedTransactions" :key="d.id">
+                <td>{{ i + 1 }}</td>
+                <td class="nowrap">{{ formatDate(d.original_created_at) }}</td>
+                <td>{{ d.ingredient?.name || '-' }}</td>
+                <td>
+                  <span :class="['badge', d.type === 'in' ? 'badge-in' : 'badge-out']">
+                    {{ d.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
+                  </span>
+                </td>
+                <td class="text-right">{{ d.quantity }}</td>
+                <td class="text-right">{{ formatMoney(d.total_cost) }}</td>
+                <td class="nowrap">{{ d.user?.full_name || d.user?.username || '-' }}</td>
+                <td>{{ d.note || '-' }}</td>
+                <td class="text-danger">{{ d.delete_reason }}</td>
+                <td class="nowrap">{{ d.deleted_by?.full_name || d.deleted_by?.username || '-' }}</td>
+                <td class="nowrap">{{ formatDate(d.deleted_at) }}</td>
+                <td>
+                  <button class="btn btn-sm btn-primary" @click="confirmRestore(d)">↩ นำกลับ</button>
+                </td>
+              </tr>
+              <tr v-if="deletedTransactions.length === 0">
+                <td colspan="12" class="table-empty">
+                  <span class="table-empty-icon">✅</span>
+                  ไม่มีรายการที่ถูกลบ
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+    </template>
 
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>วันที่</th>
-              <th>วัตถุดิบ</th>
-              <th>หมวดหมู่</th>
-              <th>ประเภท</th>
-              <th class="text-right">จำนวน</th>
-              <th>หน่วย</th>
-              <th class="text-right">ราคา/หน่วย</th>
-              <th class="text-right">รวมเงิน</th>
-              <th>ผู้ทำรายการ</th>
-              <th>หมายเหตุ</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(txn, i) in transactions" :key="txn.id">
-              <td>{{ i + 1 }}</td>
-              <td class="nowrap">{{ formatDate(txn.created_at) }}</td>
-              <td>{{ txn.ingredient?.name }}</td>
-              <td>{{ txn.ingredient?.category?.name || '-' }}</td>
-              <td>
-                <span :class="['badge', txn.type === 'in' ? 'badge-in' : 'badge-out']">
-                  {{ txn.type === 'in' ? '▲ รับเข้า' : '▼ จ่ายออก' }}
-                </span>
-              </td>
-              <td class="text-right">{{ txn.quantity }}</td>
-              <td>{{ txn.ingredient?.unit?.name }}</td>
-              <td class="text-right">{{ formatMoney(txn.price) }}</td>
-              <td class="text-right"><strong>{{ formatMoney(txn.total_cost) }}</strong></td>
-              <td class="nowrap">{{ txn.user?.full_name || txn.user?.username || '-' }}</td>
-              <td>{{ txn.note || '-' }}</td>
-            </tr>
-            <tr v-if="transactions.length === 0">
-              <td colspan="11" class="table-empty">
-                <span class="table-empty-icon">📋</span>
-                ยังไม่มีรายการเคลื่อนไหว
-              </td>
-            </tr>
-            <tr v-if="transactions.length > 0" class="total-row">
-              <td colspan="8" class="text-right"><strong>รวมทั้งหมด</strong></td>
-              <td class="text-right"><strong>{{ formatMoney(transactionTotal) }}</strong></td>
-              <td colspan="2"></td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Delete Reason Modal -->
+    <div class="modal-overlay" v-if="showDeleteModal" @click.self="showDeleteModal = false">
+      <div class="modal">
+        <div class="confirm-icon confirm-icon-danger">⚠️</div>
+        <h3 class="confirm-title">ลบรายการเคลื่อนไหว</h3>
+        <p class="confirm-message">
+          ลบรายการ "{{ deleteTarget?.ingredient?.name }}"
+          {{ deleteTarget?.type === 'in' ? 'รับเข้า' : 'จ่ายออก' }}
+          จำนวน {{ deleteTarget?.quantity }} —
+          สต็อคจะถูกปรับกลับอัตโนมัติ
+        </p>
+        <div class="form-group">
+          <label>เหตุผลในการลบ <span class="required">*</span></label>
+          <textarea v-model="deleteReason" class="form-control" rows="3" placeholder="กรุณาระบุเหตุผลในการลบรายการนี้..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" @click="showDeleteModal = false">ยกเลิก</button>
+          <button class="btn btn-danger" @click="doDelete" :disabled="!deleteReason.trim()">ลบรายการ</button>
+        </div>
       </div>
     </div>
+
+    <!-- Confirm Restore Modal -->
+    <ConfirmModal
+      v-if="confirmAction"
+      :title="confirmAction.title"
+      :message="confirmAction.message"
+      :confirmText="confirmAction.confirmText"
+      :variant="confirmAction.variant"
+      @confirm="confirmAction.onConfirm"
+      @cancel="confirmAction = null"
+    />
   </div>
 </template>
 
 <script>
-import { getTransactions, getIngredients, getCostSummary } from '../api/index.js'
+import { getTransactions, getIngredients, getCostSummary, deleteTransaction, getDeletedTransactions, restoreTransaction } from '../api/index.js'
+import { useAuth } from '../composables/useAuth.js'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import * as XLSX from 'xlsx'
 
 export default {
+  components: { ConfirmModal },
   data() {
     return {
       transactions: [],
       ingredients: [],
       costSummary: [],
+      deletedTransactions: [],
       filterType: '',
       filterIngredient: '',
       dateFrom: '',
-      dateTo: ''
+      dateTo: '',
+      activeTab: 'transactions',
+      showDeleteModal: false,
+      deleteTarget: null,
+      deleteReason: '',
+      confirmAction: null
     }
   },
   computed: {
+    isAdmin() {
+      const { isAdmin } = useAuth()
+      return isAdmin()
+    },
     costSummaryWithNames() {
       return this.costSummary.map(s => {
         const ing = this.ingredients.find(i => i.id === s.ingredient_id)
@@ -181,6 +297,14 @@ export default {
       const { data } = await getTransactions(params)
       this.transactions = data
     },
+    async loadDeleted() {
+      const { data } = await getDeletedTransactions()
+      this.deletedTransactions = data
+    },
+    async switchToDeleted() {
+      this.activeTab = 'deleted'
+      await this.loadDeleted()
+    },
     clearFilters() {
       this.filterType = ''
       this.filterIngredient = ''
@@ -194,6 +318,45 @@ export default {
     },
     formatMoney(val) {
       return Number(val || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    openDeleteModal(txn) {
+      this.deleteTarget = txn
+      this.deleteReason = ''
+      this.showDeleteModal = true
+    },
+    async doDelete() {
+      if (!this.deleteReason.trim()) return
+      try {
+        await deleteTransaction(this.deleteTarget.id, this.deleteReason)
+        this.showDeleteModal = false
+        this.deleteTarget = null
+        this.deleteReason = ''
+        await this.load()
+        // Refresh cost summary
+        const summaryRes = await getCostSummary()
+        this.costSummary = summaryRes.data
+      } catch (err) {
+        alert(err.response?.data?.error || 'เกิดข้อผิดพลาด')
+      }
+    },
+    confirmRestore(d) {
+      this.confirmAction = {
+        title: 'นำรายการกลับ',
+        message: `ต้องการนำรายการ "${d.ingredient?.name}" ${d.type === 'in' ? 'รับเข้า' : 'จ่ายออก'} จำนวน ${d.quantity} กลับมาหรือไม่? สต็อคจะถูกปรับตามอัตโนมัติ`,
+        confirmText: 'นำกลับ',
+        variant: 'info',
+        onConfirm: async () => {
+          this.confirmAction = null
+          try {
+            await restoreTransaction(d.id)
+            await Promise.all([this.load(), this.loadDeleted()])
+            const summaryRes = await getCostSummary()
+            this.costSummary = summaryRes.data
+          } catch (err) {
+            alert(err.response?.data?.error || 'เกิดข้อผิดพลาด')
+          }
+        }
+      }
     },
     exportTransactions() {
       const rows = this.transactions.map((txn, i) => ({
@@ -209,7 +372,6 @@ export default {
         'ผู้ทำรายการ': txn.user?.full_name || txn.user?.username || '-',
         'หมายเหตุ': txn.note || '-'
       }))
-      // Add total row
       rows.push({
         '#': '',
         'วันที่': '',
@@ -257,6 +419,39 @@ export default {
 </script>
 
 <style scoped>
+.tab-bar {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.tab-btn {
+  padding: 0.5rem 1.2rem;
+  border: 2px solid var(--gray-300);
+  background: white;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--gray-600);
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  border-color: var(--primary);
+  border-bottom-color: white;
+  color: var(--primary);
+  background: white;
+}
+
+.tab-badge {
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.3rem;
+}
+
 .summary-cards {
   margin-bottom: var(--space-lg);
 }

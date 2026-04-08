@@ -76,3 +76,22 @@ type Transaction struct {
 	User         User            `json:"user" gorm:"foreignKey:UserID"`
 	CreatedAt    time.Time       `json:"created_at"`
 }
+
+type DeletedTransaction struct {
+	ID                uint            `json:"id" gorm:"primaryKey"`
+	OriginalID        uint            `json:"original_id"`
+	IngredientID      uint            `json:"ingredient_id"`
+	Ingredient        Ingredient      `json:"ingredient" gorm:"foreignKey:IngredientID"`
+	Type              TransactionType `json:"type"`
+	Quantity          float64         `json:"quantity"`
+	Price             float64         `json:"price"`
+	TotalCost         float64         `json:"total_cost"`
+	Note              string          `json:"note"`
+	UserID            uint            `json:"user_id"`
+	User              User            `json:"user" gorm:"foreignKey:UserID"`
+	OriginalCreatedAt time.Time       `json:"original_created_at"`
+	DeleteReason      string          `json:"delete_reason"`
+	DeletedByID       uint            `json:"deleted_by_id"`
+	DeletedBy         User            `json:"deleted_by" gorm:"foreignKey:DeletedByID"`
+	DeletedAt         time.Time       `json:"deleted_at"`
+}

@@ -87,6 +87,11 @@ func main() {
 		admin.POST("/users", handlers.CreateUser)
 		admin.PUT("/users/:id", handlers.UpdateUser)
 		admin.DELETE("/users/:id", handlers.DeleteUser)
+
+		// Transaction management (admin)
+		admin.DELETE("/transactions/:id", handlers.DeleteTransaction)
+		admin.GET("/transactions/deleted", handlers.GetDeletedTransactions)
+		admin.POST("/transactions/:id/restore", handlers.RestoreTransaction)
 	}
 
 	// Serve frontend static files if the directory exists (Railway single-container mode)

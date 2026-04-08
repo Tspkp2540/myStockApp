@@ -56,7 +56,9 @@
                 <input type="checkbox" :value="ing.id" v-model="selectedIds" />
               </td>
               <td>{{ i + 1 }}</td>
-              <td>{{ ing.name }}</td>
+              <td>
+                <router-link :to="`/ingredients/${ing.id}`" class="ingredient-link">{{ ing.name }}</router-link>
+              </td>
               <td>{{ ing.category?.name || '-' }}</td>
               <td>{{ ing.quantity }}</td>
               <td>{{ ing.unit?.name || '-' }}</td>
@@ -67,6 +69,7 @@
               </td>
               <td v-if="isAdmin">
                 <div class="btn-group">
+                  <router-link :to="`/ingredients/${ing.id}`" class="btn btn-sm btn-primary">📊 ดูรายละเอียด</router-link>
                   <button class="btn btn-sm btn-warning" @click="openModal(ing)">แก้ไข</button>
                   <button class="btn btn-sm btn-outline-danger" @click="remove(ing.id)">ลบ</button>
                 </div>
@@ -421,5 +424,15 @@ export default {
   font-size: 0.85rem;
   opacity: 0.85;
   margin-left: 0.5rem;
+}
+
+.ingredient-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ingredient-link:hover {
+  text-decoration: underline;
 }
 </style>

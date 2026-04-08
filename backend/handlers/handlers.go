@@ -302,6 +302,111 @@ func GetIngredientCostSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summaries)
 }
 
+func DeleteTransaction(c *gin.Context) {
+	var txn models.Transaction
+	if err := database.DB.Preload("Ingredient").First(&txn, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
+		return
+	}
+
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.Reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reason is required"})
+		return
+	}
+
+	user := c.MustGet("user").(models.User)
+
+	// Reverse the stock change
+	var ing models.Ingredient
+	if err := database.DB.First(&ing, txn.IngredientID).Error; err == nil {
+		if txn.Type == models.StockIn {
+			ing.Quantity -= txn.Quantity
+			if ing.Quantity < 0 {
+				ing.Quantity = 0
+			}
+		} else {
+			ing.Quantity += txn.Quantity
+		}
+		database.DB.Save(&ing)
+	}
+
+	// Archive to deleted_transactions
+	deleted := models.DeletedTransaction{
+		OriginalID:        txn.ID,
+		IngredientID:      txn.IngredientID,
+		Type:              txn.Type,
+		Quantity:          txn.Quantity,
+		Price:             txn.Price,
+		TotalCost:         txn.TotalCost,
+		Note:              txn.Note,
+		UserID:            txn.UserID,
+		OriginalCreatedAt: txn.CreatedAt,
+		DeleteReason:      body.Reason,
+		DeletedByID:       user.ID,
+	}
+	database.DB.Create(&deleted)
+	database.DB.Delete(&txn)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
+func GetDeletedTransactions(c *gin.Context) {
+	var deleted []models.DeletedTransaction
+	query := database.DB.Preload("Ingredient").Preload("Ingredient.Category").Preload("Ingredient.Unit").Preload("User").Preload("DeletedBy").Order("deleted_at DESC")
+	if dateFrom := c.Query("date_from"); dateFrom != "" {
+		query = query.Where("deleted_at >= ?", dateFrom+"T00:00:00Z")
+	}
+	if dateTo := c.Query("date_to"); dateTo != "" {
+		query = query.Where("deleted_at <= ?", dateTo+"T23:59:59Z")
+	}
+	query.Limit(500).Find(&deleted)
+	c.JSON(http.StatusOK, deleted)
+}
+
+func RestoreTransaction(c *gin.Context) {
+	var deleted models.DeletedTransaction
+	if err := database.DB.First(&deleted, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Deleted transaction not found"})
+		return
+	}
+
+	// Restore stock change
+	var ing models.Ingredient
+	if err := database.DB.First(&ing, deleted.IngredientID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ingredient no longer exists"})
+		return
+	}
+
+	if deleted.Type == models.StockIn {
+		ing.Quantity += deleted.Quantity
+	} else {
+		if ing.Quantity < deleted.Quantity {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient stock to restore this out transaction"})
+			return
+		}
+		ing.Quantity -= deleted.Quantity
+	}
+	database.DB.Save(&ing)
+
+	// Re-create original transaction
+	txn := models.Transaction{
+		IngredientID: deleted.IngredientID,
+		Type:         deleted.Type,
+		Quantity:     deleted.Quantity,
+		Price:        deleted.Price,
+		TotalCost:    deleted.TotalCost,
+		Note:         deleted.Note,
+		UserID:       deleted.UserID,
+	}
+	database.DB.Create(&txn)
+	database.DB.Delete(&deleted)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Restored"})
+}
+
 func GetDashboard(c *gin.Context) {
 	var totalIngredients int64
 	var totalCategories int64

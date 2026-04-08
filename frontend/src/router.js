@@ -7,12 +7,14 @@ import Categories from './views/Categories.vue'
 import Units from './views/Units.vue'
 import StockTransaction from './views/StockTransaction.vue'
 import TransactionHistory from './views/TransactionHistory.vue'
+import IngredientDetail from './views/IngredientDetail.vue'
 import Users from './views/Users.vue'
 
 const routes = [
   { path: '/login', name: 'Login', component: Login, meta: { public: true } },
   { path: '/', name: 'Dashboard', component: Dashboard },
   { path: '/ingredients', name: 'Ingredients', component: Ingredients },
+  { path: '/ingredients/:id', name: 'IngredientDetail', component: IngredientDetail },
   { path: '/categories', name: 'Categories', component: Categories },
   { path: '/units', name: 'Units', component: Units },
   { path: '/stock', name: 'StockTransaction', component: StockTransaction },
