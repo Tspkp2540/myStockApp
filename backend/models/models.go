@@ -95,3 +95,66 @@ type DeletedTransaction struct {
 	DeletedBy         User            `json:"deleted_by" gorm:"foreignKey:DeletedByID"`
 	DeletedAt         time.Time       `json:"deleted_at"`
 }
+
+// ==================== Backoffice — Menu & Sales ====================
+
+type MenuItem struct {
+	ID          uint             `json:"id" gorm:"primaryKey"`
+	Name        string           `json:"name" gorm:"not null"`
+	Description string           `json:"description"`
+	Price       float64          `json:"price" gorm:"not null;default:0"`
+	ImageURL    string           `json:"image_url"`
+	Active      bool             `json:"active" gorm:"default:true"`
+	Ingredients []MenuIngredient `json:"ingredients" gorm:"foreignKey:MenuItemID"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
+}
+
+type MenuIngredient struct {
+	ID           uint       `json:"id" gorm:"primaryKey"`
+	MenuItemID   uint       `json:"menu_item_id" gorm:"not null"`
+	IngredientID uint       `json:"ingredient_id" gorm:"not null"`
+	Ingredient   Ingredient `json:"ingredient" gorm:"foreignKey:IngredientID"`
+	Quantity     float64    `json:"quantity" gorm:"not null"`
+}
+
+type Sale struct {
+	ID        uint       `json:"id" gorm:"primaryKey"`
+	Items     []SaleItem `json:"items" gorm:"foreignKey:SaleID"`
+	Total     float64    `json:"total" gorm:"not null;default:0"`
+	TotalCost float64    `json:"total_cost" gorm:"default:0"`
+	Profit    float64    `json:"profit" gorm:"default:0"`
+	Note      string     `json:"note"`
+	UserID    uint       `json:"user_id"`
+	User      User       `json:"user" gorm:"foreignKey:UserID"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type SaleItem struct {
+	ID         uint     `json:"id" gorm:"primaryKey"`
+	SaleID     uint     `json:"sale_id" gorm:"not null"`
+	MenuItemID uint     `json:"menu_item_id" gorm:"not null"`
+	MenuItem   MenuItem `json:"menu_item" gorm:"foreignKey:MenuItemID"`
+	Quantity   int      `json:"quantity" gorm:"not null;default:1"`
+	Price      float64  `json:"price" gorm:"not null"`
+	Cost       float64  `json:"cost" gorm:"default:0"`
+}
+
+// ==================== Deleted Sales (Front-Office archive) ====================
+
+type DeletedSale struct {
+	ID                uint      `json:"id" gorm:"primaryKey"`
+	OriginalID        uint      `json:"original_id"`
+	Total             float64   `json:"total"`
+	TotalCost         float64   `json:"total_cost"`
+	Profit            float64   `json:"profit"`
+	Note              string    `json:"note"`
+	ItemsSummary      string    `json:"items_summary"`
+	UserID            uint      `json:"user_id"`
+	User              User      `json:"user" gorm:"foreignKey:UserID"`
+	OriginalCreatedAt time.Time `json:"original_created_at"`
+	DeleteReason      string    `json:"delete_reason"`
+	DeletedByID       uint      `json:"deleted_by_id"`
+	DeletedBy         User      `json:"deleted_by" gorm:"foreignKey:DeletedByID"`
+	DeletedAt         time.Time `json:"deleted_at"`
+}

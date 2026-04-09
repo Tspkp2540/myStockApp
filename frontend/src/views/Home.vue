@@ -57,10 +57,18 @@
 </template>
 
 <script>
+import { useAuth } from '../composables/useAuth.js'
+
 export default {
   data() {
     return {
       selectedRole: 'employee'
+    }
+  },
+  computed: {
+    isLoggedIn() {
+      const { isLoggedIn } = useAuth()
+      return isLoggedIn()
     }
   },
   methods: {
@@ -68,10 +76,10 @@ export default {
       this.$router.push('/login')
     },
     goBackOffice() {
-      // TODO: link to sell back-office
+      window.location.href = this.isLoggedIn ? '/backoffice/' : '/backoffice/login'
     },
     goFrontOffice() {
-      // TODO: link to sell front-office
+      window.location.href = this.isLoggedIn ? '/front-office/' : '/front-office/login'
     }
   }
 }

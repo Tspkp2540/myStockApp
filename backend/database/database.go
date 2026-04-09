@@ -34,6 +34,11 @@ func InitDB(dbPath string) error {
 		&models.Ingredient{},
 		&models.Transaction{},
 		&models.DeletedTransaction{},
+		&models.MenuItem{},
+		&models.MenuIngredient{},
+		&models.Sale{},
+		&models.SaleItem{},
+		&models.DeletedSale{},
 	); err != nil {
 		return err
 	}

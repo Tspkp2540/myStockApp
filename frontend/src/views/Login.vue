@@ -14,22 +14,28 @@
           <input
             v-model="username"
             class="form-control"
+            :class="{ 'is-invalid': errors.username }"
             placeholder="username"
             autocomplete="username"
             maxlength="15"
             autofocus
+            @input="errors.username = ''"
           />
+          <span v-if="errors.username" class="field-error">{{ errors.username }}</span>
         </div>
         <div class="form-group">
           <label>รหัสผ่าน</label>
           <input
             v-model="password"
             class="form-control"
+            :class="{ 'is-invalid': errors.password }"
             type="password"
             placeholder="••••••••"
             autocomplete="current-password"
             maxlength="15"
+            @input="errors.password = ''"
           />
+          <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
         </div>
         <div v-if="error" class="alert alert-error">
           <span class="material-symbols-outlined">error</span>
@@ -38,6 +44,10 @@
         <button class="btn btn-primary btn-login" type="submit" :disabled="loading">
           <span v-if="loading" class="material-symbols-outlined">progress_activity</span>
           {{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}
+        </button>
+        <button type="button" class="btn btn-outline btn-login" style="margin-top:8px;" @click="$router.push('/home')">
+          <span class="material-symbols-outlined">home</span>
+          กลับหน้าหลัก
         </button>
       </form>
     </div>
@@ -53,16 +63,18 @@ export default {
       username: '',
       password: '',
       error: '',
-      loading: false
+      loading: false,
+      errors: { username: '', password: '' }
     }
   },
   methods: {
     async handleLogin() {
       this.error = ''
-      if (!this.username || !this.password) {
-        this.error = 'กรุณาระบุชื่อผู้ใช้และรหัสผ่าน'
-        return
-      }
+      this.errors = { username: '', password: '' }
+      let valid = true
+      if (!this.username.trim()) { this.errors.username = 'กรุณาระบุชื่อผู้ใช้'; valid = false }
+      if (!this.password) { this.errors.password = 'กรุณาระบุรหัสผ่าน'; valid = false }
+      if (!valid) return
       this.loading = true
       try {
         const { login } = useAuth()
