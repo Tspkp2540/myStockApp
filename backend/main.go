@@ -23,17 +23,21 @@ func main() {
 
 	r := gin.Default()
 
+	// Health check — before any middleware so Railway can reach it
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Cookie"},
-		ExposeHeaders:    []string{"Set-Cookie"},
-		AllowCredentials: true,
+		AllowAllOrigins: true,
+		AllowMethods:    []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:    []string{"Origin", "Content-Type", "Accept", "Cookie"},
+		ExposeHeaders:   []string{"Set-Cookie"},
 	}))
 
 	api := r.Group("/api")
 	{
-		// Public — health check
+		// Public — health check (also available under /api)
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "ok"})
 		})
