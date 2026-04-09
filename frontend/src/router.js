@@ -32,12 +32,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const { state, fetchUser, isLoggedIn, isAdmin } = useAuth()
 
+  // Skip auth check for Home page — no need to call /api/auth/me
+  if (to.meta.isHome) return next()
+
   if (!state.loaded) {
     await fetchUser()
   }
 
   if (to.meta.public) {
-    if (to.meta.isHome) return next()
     if (isLoggedIn()) return next('/')
     return next()
   }

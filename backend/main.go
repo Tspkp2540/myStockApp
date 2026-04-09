@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"restaurant-stock/database"
 	"restaurant-stock/handlers"
@@ -130,33 +131,34 @@ func main() {
 		r.Static("/assets", "./static/assets")
 		r.StaticFile("/vite.svg", "./static/vite.svg")
 
-		// Backoffice static files
+		// Backoffice static assets (explicit path, no wildcard)
 		if _, err := os.Stat("./static-backoffice"); err == nil {
-			backoffice := r.Group("/backoffice")
-			backoffice.Static("/assets", "./static-backoffice/assets")
-			backoffice.GET("", func(c *gin.Context) {
-				c.File("./static-backoffice/index.html")
-			})
-			backoffice.GET("/*path", func(c *gin.Context) {
+			r.Static("/backoffice/assets", "./static-backoffice/assets")
+			r.GET("/backoffice", func(c *gin.Context) {
 				c.File("./static-backoffice/index.html")
 			})
 			log.Println("Serving backoffice static files from ./static-backoffice")
 		}
 
-		// Front-office static files
+		// Front-office static assets (explicit path, no wildcard)
 		if _, err := os.Stat("./static-frontoffice"); err == nil {
-			fo := r.Group("/front-office")
-			fo.Static("/assets", "./static-frontoffice/assets")
-			fo.GET("", func(c *gin.Context) {
-				c.File("./static-frontoffice/index.html")
-			})
-			fo.GET("/*path", func(c *gin.Context) {
+			r.Static("/front-office/assets", "./static-frontoffice/assets")
+			r.GET("/front-office", func(c *gin.Context) {
 				c.File("./static-frontoffice/index.html")
 			})
 			log.Println("Serving frontoffice static files from ./static-frontoffice")
 		}
 
 		r.NoRoute(func(c *gin.Context) {
+			path := c.Request.URL.Path
+			if strings.HasPrefix(path, "/backoffice") {
+				c.File("./static-backoffice/index.html")
+				return
+			}
+			if strings.HasPrefix(path, "/front-office") {
+				c.File("./static-frontoffice/index.html")
+				return
+			}
 			c.File("./static/index.html")
 		})
 		log.Println("Serving frontend static files from ./static")
