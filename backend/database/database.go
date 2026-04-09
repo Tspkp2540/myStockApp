@@ -33,6 +33,7 @@ func InitDB(dbPath string) error {
 		&models.Unit{},
 		&models.Ingredient{},
 		&models.Transaction{},
+		&models.DeletedTransaction{},
 	); err != nil {
 		return err
 	}

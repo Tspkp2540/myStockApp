@@ -1,33 +1,91 @@
 <template>
-  <div id="app">
-    <nav class="navbar" v-if="isLoggedIn">
-      <div class="nav-brand">🍳 ระบบสต็อคร้านอาหาร</div>
-      <div class="nav-links">
-        <router-link to="/">แดชบอร์ด</router-link>
-        <router-link to="/ingredients">วัตถุดิบ</router-link>
-        <router-link to="/categories">หมวดหมู่</router-link>
-        <router-link to="/units">หน่วย</router-link>
-        <router-link to="/stock">รับ/จ่ายสต็อค</router-link>
-        <router-link to="/history">ประวัติ</router-link>
-        <router-link to="/users" v-if="isAdmin">จัดการผู้ใช้</router-link>
+  <div id="app" :class="{ 'app-layout': showLayout }">
+    <!-- Sidebar -->
+    <aside v-if="showLayout" class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
+      <div class="sidebar-header">
+        <span class="material-symbols-outlined sidebar-logo-icon">restaurant</span>
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-name">StockPro</span>
+          <span class="sidebar-brand-sub">Restaurant Manager</span>
+        </div>
       </div>
-      <div class="nav-user">
-        <span class="nav-user-name">
-          <span :class="['badge', isAdmin ? 'badge-warning' : 'badge-info']">
-            {{ isAdmin ? '🔑' : '👤' }}
-          </span>
-          {{ user?.full_name || user?.username }}
-        </span>
-        <button class="btn btn-sm btn-outline nav-logout" @click="showLogoutConfirm = true">ออกจากระบบ</button>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-nav-section">
+          <span class="sidebar-nav-label">เมนูหลัก</span>
+          <router-link to="/" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>แดชบอร์ด</span>
+          </router-link>
+          <router-link to="/ingredients" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <span>วัตถุดิบ</span>
+          </router-link>
+          <router-link to="/categories" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">category</span>
+            <span>หมวดหมู่</span>
+          </router-link>
+          <router-link to="/units" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">straighten</span>
+            <span>หน่วย</span>
+          </router-link>
+        </div>
+        <div class="sidebar-nav-section">
+          <span class="sidebar-nav-label">รายการ</span>
+          <router-link to="/stock" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">swap_vert</span>
+            <span>รับ/จ่ายสต็อค</span>
+          </router-link>
+          <router-link to="/history" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">history</span>
+            <span>ประวัติ</span>
+          </router-link>
+        </div>
+        <div class="sidebar-nav-section" v-if="isAdmin">
+          <span class="sidebar-nav-label">ผู้ดูแลระบบ</span>
+          <router-link to="/users" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">group</span>
+            <span>จัดการผู้ใช้</span>
+          </router-link>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user-info">
+          <div class="sidebar-avatar">
+            <span class="material-symbols-outlined">{{ isAdmin ? 'shield_person' : 'person' }}</span>
+          </div>
+          <div class="sidebar-user-detail">
+            <span class="sidebar-user-name">{{ user?.full_name || user?.username }}</span>
+            <span class="sidebar-user-role">{{ isAdmin ? 'ผู้ดูแลระบบ' : 'พนักงาน' }}</span>
+          </div>
+        </div>
+        <button class="sidebar-logout-btn" @click="showLogoutConfirm = true" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
       </div>
-    </nav>
-    <main :class="isLoggedIn ? 'content' : ''">
-      <router-view v-slot="{ Component }">
-        <transition name="page" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div v-if="sidebarOpen" class="sidebar-overlay" @click="closeSidebar"></div>
+
+    <!-- Main content area -->
+    <div :class="{ 'main-wrapper': showLayout }">
+      <header v-if="showLayout" class="mobile-topbar">
+        <button class="mobile-topbar-btn" @click="toggleSidebar">
+          <span class="material-symbols-outlined">{{ sidebarOpen ? 'close' : 'menu' }}</span>
+        </button>
+        <span class="mobile-topbar-title">StockPro</span>
+      </header>
+
+      <main :class="showLayout ? 'content' : ''">
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
 
     <ConfirmModal
       v-if="showLogoutConfirm"
@@ -50,7 +108,8 @@ export default {
   data() {
     return {
       authState: null,
-      showLogoutConfirm: false
+      showLogoutConfirm: false,
+      sidebarOpen: false
     }
   },
   created() {
@@ -64,45 +123,29 @@ export default {
     isLoggedIn() {
       return !!this.authState?.user
     },
+    isHomePage() {
+      return this.$route?.name === 'Home'
+    },
+    showLayout() {
+      return this.isLoggedIn && !this.isHomePage
+    },
     isAdmin() {
       return this.authState?.user?.role === 'admin'
     }
   },
   methods: {
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen
+    },
+    closeSidebar() {
+      this.sidebarOpen = false
+    },
     async handleLogout() {
       this.showLogoutConfirm = false
       const { logout } = useAuth()
       await logout()
-      this.$router.push('/login')
+      this.$router.push('/home')
     }
   }
 }
 </script>
-
-<style scoped>
-.nav-user {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.nav-user-name {
-  color: var(--color-nav-link);
-  font-size: var(--font-size-sm);
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.nav-logout {
-  color: var(--color-nav-link);
-  border-color: rgba(148, 163, 184, 0.3);
-}
-
-.nav-logout:hover {
-  color: var(--color-text-inverse);
-  border-color: rgba(148, 163, 184, 0.6);
-  background: var(--color-nav-hover);
-}
-</style>

@@ -19,23 +19,35 @@
         <div class="form-group">
           <label>ประเภท <span class="required">*</span></label>
           <select v-model="form.type" class="form-control">
-            <option value="in">▲ รับเข้า (Stock In)</option>
-            <option value="out">▼ จ่ายออก (Stock Out)</option>
+            <option value="in">รับเข้า (Stock In)</option>
+            <option value="out">จ่ายออก (Stock Out)</option>
           </select>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>จำนวน <span class="required">*</span></label>
-          <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" />
+          <input v-model.number="form.quantity" class="form-control" type="number" min="0.1" step="0.1" @input="limitNumber($event, 'quantity')" />
         </div>
         <div class="form-group">
-          <label>หมายเหตุ</label>
-          <input v-model="form.note" class="form-control" placeholder="เช่น ซื้อจากตลาด, ใช้ทำอาหาร" />
+          <label>ราคาต่อหน่วย (ฺ) <span v-if="form.type === 'in'" class="required">*</span></label>
+          <input v-model.number="form.price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" @input="limitNumber($event, 'price')" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>หมายเหตุ / เหตุผล <span class="required">*</span></label>
+          <input v-model="form.note" class="form-control" maxlength="100" :placeholder="form.type === 'in' ? 'เช่น ซื้อจากตลาด, รับจากซัพพลายเออร์' : 'เช่น ใช้ทำอาหาร, หมดอายุ, เสียหาย'" />
+        </div>
+        <div class="form-group">
+          <label>รวมเป็นเงิน</label>
+          <div class="total-cost-display">
+            {{ formatMoney(computedTotal) }} ฺ
+          </div>
         </div>
       </div>
       <button class="btn btn-lg btn-success" @click="confirmSubmit">
-        บันทึกรายการ
+        <span class="material-symbols-outlined">save</span> บันทึกรายการ
       </button>
       <div v-if="message" :class="['alert', messageType]">
         {{ message }}
@@ -44,7 +56,7 @@
 
     <div class="card" v-if="selectedIngredient">
       <div class="card-header">
-        <h2 class="section-title">📦 ข้อมูลวัตถุดิบที่เลือก</h2>
+        <h2 class="section-title"><span class="material-symbols-outlined">inventory_2</span> ข้อมูลวัตถุดิบที่เลือก</h2>
       </div>
       <div class="info-grid">
         <div class="info-item"><strong>ชื่อ:</strong> {{ selectedIngredient.name }}</div>
@@ -75,7 +87,7 @@ export default {
   data() {
     return {
       ingredients: [],
-      form: { ingredient_id: null, type: 'in', quantity: 0, note: '' },
+      form: { ingredient_id: null, type: 'in', quantity: 0, price: 0, note: '' },
       message: '',
       messageType: '',
       confirmAction: null
@@ -85,12 +97,26 @@ export default {
     selectedIngredient() {
       if (!this.form.ingredient_id) return null
       return this.ingredients.find(i => i.id === this.form.ingredient_id)
+    },
+    computedTotal() {
+      return (this.form.price || 0) * (this.form.quantity || 0)
     }
   },
   async mounted() {
     await this.loadIngredients()
   },
   methods: {
+    limitNumber(e, field) {
+      const raw = e.target.value.replace(/[^0-9.]/g, '')
+      const parts = raw.split('.')
+      let clean = parts[0].slice(0, 7)
+      if (parts.length > 1) clean += '.' + parts[1].slice(0, 2)
+      e.target.value = clean
+      this.form[field] = clean === '' ? 0 : Number(clean)
+    },
+    formatMoney(val) {
+      return Number(val || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
     async loadIngredients() {
       const { data } = await getIngredients()
       this.ingredients = data
@@ -101,11 +127,22 @@ export default {
         this.messageType = 'alert-error'
         return
       }
+      if (!this.form.note.trim()) {
+        this.message = 'กรุณาระบุหมายเหตุ / เหตุผล'
+        this.messageType = 'alert-error'
+        return
+      }
+      if (this.form.type === 'in' && (!this.form.price || this.form.price <= 0)) {
+        this.message = 'กรุณาระบุราคาต่อหน่วยสำหรับการรับเข้า'
+        this.messageType = 'alert-error'
+        return
+      }
       const ing = this.selectedIngredient
       const typeName = this.form.type === 'in' ? 'รับเข้า' : 'จ่ายออก'
+      const totalText = this.form.price > 0 ? ` (รวม ${this.formatMoney(this.computedTotal)} ฺ)` : ''
       this.confirmAction = {
         title: `ยืนยันการ${typeName}สต็อค`,
-        message: `${typeName} "${ing?.name}" จำนวน ${this.form.quantity} ${ing?.unit?.name || ''} ต้องการดำเนินการหรือไม่?`,
+        message: `${typeName} "${ing?.name}" จำนวน ${this.form.quantity} ${ing?.unit?.name || ''}${totalText} ต้องการดำเนินการหรือไม่?`,
         confirmText: 'บันทึก',
         variant: this.form.type === 'in' ? 'info' : 'warning',
         onConfirm: () => this.submit()
@@ -118,11 +155,13 @@ export default {
           ingredient_id: Number(this.form.ingredient_id),
           type: this.form.type,
           quantity: this.form.quantity,
+          price: this.form.price || 0,
           note: this.form.note
         })
-        this.message = '✓ บันทึกสำเร็จ!'
+        this.message = 'บันทึกสำเร็จ!'
         this.messageType = 'alert-success'
         this.form.quantity = 0
+        this.form.price = 0
         this.form.note = ''
         await this.loadIngredients()
       } catch (err) {
@@ -133,13 +172,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.alert {
-  margin-top: var(--space-md);
-}
-
-.btn-lg {
-  margin-top: var(--space-sm);
-}
-</style>

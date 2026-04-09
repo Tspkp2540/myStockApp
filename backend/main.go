@@ -73,6 +73,7 @@ func main() {
 		// Stock transactions
 		auth.GET("/transactions", handlers.GetTransactions)
 		auth.POST("/transactions", handlers.CreateTransaction)
+		auth.GET("/transactions/cost-summary", handlers.GetIngredientCostSummary)
 
 		// Dashboard
 		auth.GET("/dashboard", handlers.GetDashboard)
@@ -86,6 +87,11 @@ func main() {
 		admin.POST("/users", handlers.CreateUser)
 		admin.PUT("/users/:id", handlers.UpdateUser)
 		admin.DELETE("/users/:id", handlers.DeleteUser)
+
+		// Transaction management (admin)
+		admin.DELETE("/transactions/:id", handlers.DeleteTransaction)
+		admin.GET("/transactions/deleted", handlers.GetDeletedTransactions)
+		admin.POST("/transactions/:id/restore", handlers.RestoreTransaction)
 	}
 
 	// Serve frontend static files if the directory exists (Railway single-container mode)

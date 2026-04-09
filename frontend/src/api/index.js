@@ -52,6 +52,10 @@ export const bulkDeleteIngredients = (ids) => api.post('/ingredients/bulk-delete
 // Transactions
 export const getTransactions = (params) => api.get('/transactions', { params })
 export const createTransaction = (data) => api.post('/transactions', data)
+export const getCostSummary = () => api.get('/transactions/cost-summary')
+export const deleteTransaction = (id, reason) => api.delete(`/transactions/${id}`, { data: { reason } })
+export const getDeletedTransactions = (params) => api.get('/transactions/deleted', { params })
+export const restoreTransaction = (id) => api.post(`/transactions/${id}/restore`)
 
 // Dashboard
 export const getDashboard = () => api.get('/dashboard')
