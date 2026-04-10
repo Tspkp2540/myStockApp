@@ -85,26 +85,30 @@
         </div>
 
         <div class="form-group" style="margin-top:16px;">
-          <label>ประเภทการขาย *</label>
-          <div style="display:flex;gap:12px;margin-top:4px;">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="radio" v-model="saleType" value="dine_in" /> หน้าร้าน
+          <label style="font-weight:600;margin-bottom:6px;">ประเภทการขาย *</label>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <label class="toggle-btn" :class="{ active: saleType === 'dine_in' }" @click="saleType = 'dine_in'">
+              <span class="material-symbols-outlined" style="font-size:18px;">storefront</span>
+              หน้าร้าน
             </label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="radio" v-model="saleType" value="delivery" /> ส่ง Delivery
+            <label class="toggle-btn" :class="{ active: saleType === 'delivery' }" @click="saleType = 'delivery'" style="--toggle-color:var(--color-info);--toggle-bg:var(--color-info-light);">
+              <span class="material-symbols-outlined" style="font-size:18px;">delivery_dining</span>
+              Delivery
             </label>
           </div>
           <span v-if="fieldErrors.saleType" class="field-error" style="color:var(--color-danger);font-size:.8rem;">{{ fieldErrors.saleType }}</span>
         </div>
 
         <div class="form-group" style="margin-top:12px;">
-          <label>ชำระเงินด้วย *</label>
-          <div style="display:flex;gap:12px;margin-top:4px;">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="radio" v-model="paymentMethod" value="cash" /> เงินสด
+          <label style="font-weight:600;margin-bottom:6px;">ชำระเงินด้วย *</label>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <label class="toggle-btn" :class="{ active: paymentMethod === 'cash' }" @click="paymentMethod = 'cash'" style="--toggle-color:var(--color-success);--toggle-bg:var(--color-success-light);">
+              <span class="material-symbols-outlined" style="font-size:18px;">payments</span>
+              เงินสด
             </label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="radio" v-model="paymentMethod" value="transfer" /> เงินโอน
+            <label class="toggle-btn" :class="{ active: paymentMethod === 'transfer' }" @click="paymentMethod = 'transfer'" style="--toggle-color:#7c3aed;--toggle-bg:#f5f3ff;">
+              <span class="material-symbols-outlined" style="font-size:18px;">account_balance</span>
+              เงินโอน
             </label>
           </div>
           <span v-if="fieldErrors.paymentMethod" class="field-error" style="color:var(--color-danger);font-size:.8rem;">{{ fieldErrors.paymentMethod }}</span>
