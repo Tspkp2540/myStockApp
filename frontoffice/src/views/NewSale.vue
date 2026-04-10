@@ -13,20 +13,27 @@
       </div>
     </div>
     <div v-else>
-      <div class="menu-grid">
-        <div
-          v-for="item in menuItems"
-          :key="item.id"
-          class="menu-card"
-          :class="{ selected: getQty(item.id) > 0 }"
-          @click="addItem(item.id)"
-        >
-          <div class="menu-card-name">{{ item.name }}</div>
-          <div class="menu-card-price">{{ formatMoney(item.price) }}</div>
-          <div v-if="getQty(item.id) > 0" class="menu-card-qty">
-            <button class="qty-btn" @click.stop="decreaseItem(item.id)">−</button>
-            <span class="qty-value">{{ getQty(item.id) }}</span>
-            <button class="qty-btn" @click.stop="addItem(item.id)">+</button>
+      <!-- Menu Grid grouped by category -->
+      <div v-for="group in groupedMenuItems" :key="group.category" style="margin-bottom:20px;">
+        <h3 style="font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--color-text-secondary);">
+          <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:4px;font-size:18px;">category</span>
+          {{ group.category }}
+        </h3>
+        <div class="menu-grid">
+          <div
+            v-for="item in group.items"
+            :key="item.id"
+            class="menu-card"
+            :class="{ selected: getQty(item.id) > 0 }"
+            @click="addItem(item.id)"
+          >
+            <div class="menu-card-name">{{ item.name }}</div>
+            <div class="menu-card-price">{{ formatMoney(item.price) }}</div>
+            <div v-if="getQty(item.id) > 0" class="menu-card-qty">
+              <button class="qty-btn" @click.stop="decreaseItem(item.id)">−</button>
+              <span class="qty-value">{{ getQty(item.id) }}</span>
+              <button class="qty-btn" @click.stop="addItem(item.id)">+</button>
+            </div>
           </div>
         </div>
       </div>
@@ -78,6 +85,32 @@
         </div>
 
         <div class="form-group" style="margin-top:16px;">
+          <label>ประเภทการขาย *</label>
+          <div style="display:flex;gap:12px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="radio" v-model="saleType" value="dine_in" /> หน้าร้าน
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="radio" v-model="saleType" value="delivery" /> ส่ง Delivery
+            </label>
+          </div>
+          <span v-if="fieldErrors.saleType" class="field-error" style="color:var(--color-danger);font-size:.8rem;">{{ fieldErrors.saleType }}</span>
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
+          <label>ชำระเงินด้วย *</label>
+          <div style="display:flex;gap:12px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="radio" v-model="paymentMethod" value="cash" /> เงินสด
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+              <input type="radio" v-model="paymentMethod" value="transfer" /> เงินโอน
+            </label>
+          </div>
+          <span v-if="fieldErrors.paymentMethod" class="field-error" style="color:var(--color-danger);font-size:.8rem;">{{ fieldErrors.paymentMethod }}</span>
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
           <label>หมายเหตุ (ถ้ามี)</label>
           <input v-model="note" class="form-control" placeholder="เช่น โต๊ะ 5, ไข่ดาวเพิ่ม" />
         </div>
@@ -136,11 +169,14 @@ export default {
       menuItems: [],
       orderItems: [],
       note: '',
+      saleType: '',
+      paymentMethod: '',
       saving: false,
       error: '',
       success: '',
       showConfirmSubmit: false,
-      showConfirmClear: false
+      showConfirmClear: false,
+      fieldErrors: { saleType: '', paymentMethod: '' }
     }
   },
   computed: {
@@ -148,6 +184,15 @@ export default {
       return this.orderItems.reduce((sum, oi) => {
         return sum + this.getMenuPrice(oi.menu_item_id) * oi.quantity
       }, 0)
+    },
+    groupedMenuItems() {
+      const groups = {}
+      for (const item of this.menuItems) {
+        const catName = item.menu_category?.name || 'อื่นๆ'
+        if (!groups[catName]) groups[catName] = []
+        groups[catName].push(item)
+      }
+      return Object.keys(groups).sort().map(cat => ({ category: cat, items: groups[cat] }))
     }
   },
   async created() {
@@ -199,8 +244,11 @@ export default {
       this.showConfirmClear = false
       this.orderItems = []
       this.note = ''
+      this.saleType = ''
+      this.paymentMethod = ''
       this.error = ''
       this.success = ''
+      this.fieldErrors = { saleType: '', paymentMethod: '' }
     },
     confirmClear() {
       this.showConfirmClear = true
@@ -208,10 +256,21 @@ export default {
     confirmSubmit() {
       this.error = ''
       this.success = ''
+      this.fieldErrors = { saleType: '', paymentMethod: '' }
+      let valid = true
       if (this.orderItems.length === 0) {
         this.error = 'กรุณาเลือกเมนูอย่างน้อย 1 รายการ'
         return
       }
+      if (!this.saleType) {
+        this.fieldErrors.saleType = 'กรุณาเลือกประเภทการขาย'
+        valid = false
+      }
+      if (!this.paymentMethod) {
+        this.fieldErrors.paymentMethod = 'กรุณาเลือกวิธีชำระเงิน'
+        valid = false
+      }
+      if (!valid) return
       this.showConfirmSubmit = true
     },
     async submitSale() {
@@ -224,12 +283,16 @@ export default {
             menu_item_id: i.menu_item_id,
             quantity: i.quantity
           })),
+          sale_type: this.saleType,
+          payment_method: this.paymentMethod,
           note: this.note
         }
         await createSale(payload)
         this.success = `บันทึกการขายสำเร็จ — ยอดรวม ${this.formatMoney(this.totalAmount)}`
         this.orderItems = []
         this.note = ''
+        this.saleType = ''
+        this.paymentMethod = ''
       } catch (e) {
         this.error = e.response?.data?.error || 'เกิดข้อผิดพลาด'
       } finally {

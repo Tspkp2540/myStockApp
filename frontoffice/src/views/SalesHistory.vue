@@ -2,10 +2,16 @@
   <div>
     <div class="page-header">
       <h1 class="page-title">ประวัติการขาย</h1>
-      <router-link to="/new-sale" class="btn btn-primary">
-        <span class="material-symbols-outlined">add_shopping_cart</span>
-        บันทึกการขาย
-      </router-link>
+      <div style="display:flex;gap:8px;">
+        <button v-if="isAdmin" class="btn btn-outline" @click="doExport" :disabled="exporting">
+          <span class="material-symbols-outlined">download</span>
+          {{ exporting ? 'กำลัง Export...' : 'Export Excel' }}
+        </button>
+        <router-link to="/new-sale" class="btn btn-primary">
+          <span class="material-symbols-outlined">add_shopping_cart</span>
+          บันทึกการขาย
+        </router-link>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -65,6 +71,8 @@
               <th>วันที่/เวลา</th>
               <th>รายการ</th>
               <th class="text-right">ยอดรวม</th>
+              <th>ประเภท</th>
+              <th>ชำระเงิน</th>
               <th>ผู้ขาย</th>
               <th>หมายเหตุ</th>
               <th class="text-center">จัดการ</th>
@@ -81,6 +89,16 @@
                 </div>
               </td>
               <td class="text-right font-mono" style="font-weight:600;">{{ formatMoney(sale.total) }}</td>
+              <td>
+                <span class="badge" :class="sale.sale_type === 'delivery' ? 'badge-blue' : 'badge-green'">
+                  {{ sale.sale_type === 'delivery' ? 'Delivery' : 'หน้าร้าน' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" :class="sale.payment_method === 'transfer' ? 'badge-purple' : 'badge-orange'">
+                  {{ sale.payment_method === 'transfer' ? 'เงินโอน' : 'เงินสด' }}
+                </span>
+              </td>
               <td>{{ sale.user?.full_name || sale.user?.username || '-' }}</td>
               <td class="text-muted">{{ sale.note || '-' }}</td>
               <td class="text-center">
@@ -140,7 +158,8 @@
 </template>
 
 <script>
-import { getSales, deleteSale } from '../api/index.js'
+import { getSales, deleteSale, exportSalesExcel } from '../api/index.js'
+import { useAuth } from '../composables/useAuth.js'
 
 export default {
   data() {
@@ -152,7 +171,8 @@ export default {
       deleteTarget: null,
       deleteReason: '',
       deleteError: '',
-      deleting: false
+      deleting: false,
+      exporting: false
     }
   },
   computed: {
@@ -161,6 +181,10 @@ export default {
       return this.sales.reduce((s, sale) => {
         return s + (sale.items || []).reduce((si, item) => si + item.quantity, 0)
       }, 0)
+    },
+    isAdmin() {
+      const { state } = useAuth()
+      return state.user?.role === 'admin'
     }
   },
   async created() {
@@ -211,6 +235,28 @@ export default {
       const dt = new Date(d)
       return dt.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: '2-digit' }) +
         ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    },
+    async doExport() {
+      this.exporting = true
+      try {
+        const params = {}
+        if (this.dateFrom) params.date_from = this.dateFrom
+        if (this.dateTo) params.date_to = this.dateTo
+        const { data } = await exportSalesExcel(params)
+        const url = window.URL.createObjectURL(new Blob([data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', 'sales_export.xlsx')
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error(e)
+        alert('ไม่สามารถ Export ได้ (ต้องเป็น Admin)')
+      } finally {
+        this.exporting = false
+      }
     }
   }
 }

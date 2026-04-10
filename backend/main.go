@@ -87,6 +87,9 @@ func main() {
 		auth.GET("/menu-items", handlers.GetMenuItems)
 		auth.GET("/menu-items/:id", handlers.GetMenuItem)
 
+		// Menu categories (read-only for all)
+		auth.GET("/menu-categories", handlers.GetMenuCategories)
+
 		// Front-Office — Dashboard & Sales (employee)
 		auth.GET("/frontoffice/dashboard", handlers.GetFrontofficeDashboard)
 		auth.POST("/frontoffice/sales", handlers.CreateSale)
@@ -103,11 +106,20 @@ func main() {
 		admin.PUT("/menu-items/:id", handlers.UpdateMenuItem)
 		admin.DELETE("/menu-items/:id", handlers.DeleteMenuItem)
 
+		// Menu categories management (admin only)
+		admin.POST("/menu-categories", handlers.CreateMenuCategory)
+		admin.PUT("/menu-categories/:id", handlers.UpdateMenuCategory)
+		admin.DELETE("/menu-categories/:id", handlers.DeleteMenuCategory)
+
 		// Backoffice — Sales (admin only)
 		admin.POST("/sales", handlers.CreateSale)
 		admin.GET("/sales", handlers.GetSales)
+		admin.GET("/sales/export", handlers.ExportSalesExcel)
 		admin.GET("/sales/:id", handlers.GetSale)
 		admin.DELETE("/sales/:id", handlers.DeleteSale)
+
+		// Export frontoffice Sales to Excel (admin only)
+		admin.GET("/frontoffice/sales/export", handlers.ExportSalesExcel)
 
 		// Backoffice — Dashboard (admin only)
 		admin.GET("/backoffice/dashboard", handlers.GetBackofficeDashboard)

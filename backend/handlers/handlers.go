@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"restaurant-stock/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 )
 
 func GetCategories(c *gin.Context) {
@@ -431,4 +433,133 @@ func GetDashboard(c *gin.Context) {
 		"low_stock_items":     lowStockItems,
 		"recent_transactions": recentTxns,
 	})
+}
+
+// ==================== Menu Categories ====================
+
+func GetMenuCategories(c *gin.Context) {
+	var cats []models.MenuCategory
+	database.DB.Order("name").Find(&cats)
+	c.JSON(http.StatusOK, cats)
+}
+
+func CreateMenuCategory(c *gin.Context) {
+	var cat models.MenuCategory
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Create(&cat)
+	c.JSON(http.StatusCreated, cat)
+}
+
+func UpdateMenuCategory(c *gin.Context) {
+	var cat models.MenuCategory
+	if err := database.DB.First(&cat, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบหมวดหมู่เมนู"})
+		return
+	}
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Save(&cat)
+	c.JSON(http.StatusOK, cat)
+}
+
+func DeleteMenuCategory(c *gin.Context) {
+	if err := database.DB.Delete(&models.MenuCategory{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "ลบหมวดหมู่เมนูแล้ว"})
+}
+
+// ==================== Export Sales to Excel ====================
+
+func ExportSalesExcel(c *gin.Context) {
+	var sales []models.Sale
+	query := database.DB.Preload("Items").Preload("Items.MenuItem").Preload("User").Order("created_at DESC")
+	if dateFrom := c.Query("date_from"); dateFrom != "" {
+		query = query.Where("created_at >= ?", dateFrom+"T00:00:00Z")
+	}
+	if dateTo := c.Query("date_to"); dateTo != "" {
+		query = query.Where("created_at <= ?", dateTo+"T23:59:59Z")
+	}
+	query.Limit(5000).Find(&sales)
+
+	f := excelize.NewFile()
+	sheet := "Sales"
+	f.SetSheetName("Sheet1", sheet)
+
+	headers := []string{"#", "วันที่/เวลา", "รายการ", "ยอดรวม", "ต้นทุน", "กำไร", "ประเภทการขาย", "การชำระเงิน", "ผู้ขาย", "หมายเหตุ"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true}})
+	f.SetRowStyle(sheet, 1, 1, headerStyle)
+
+	for row, sale := range sales {
+		r := row + 2
+		f.SetCellValue(sheet, cellName(1, r), sale.ID)
+		f.SetCellValue(sheet, cellName(2, r), sale.CreatedAt.Format("2006-01-02 15:04"))
+
+		var items []string
+		for _, item := range sale.Items {
+			name := fmt.Sprintf("#%d", item.MenuItemID)
+			if item.MenuItem.Name != "" {
+				name = item.MenuItem.Name
+			}
+			items = append(items, fmt.Sprintf("%s x%d", name, item.Quantity))
+		}
+		f.SetCellValue(sheet, cellName(3, r), joinStrings(items))
+		f.SetCellValue(sheet, cellName(4, r), sale.Total)
+		f.SetCellValue(sheet, cellName(5, r), sale.TotalCost)
+		f.SetCellValue(sheet, cellName(6, r), sale.Profit)
+
+		saleTypeText := "หน้าร้าน"
+		if sale.SaleType == models.SaleTypeDelivery {
+			saleTypeText = "Delivery"
+		}
+		f.SetCellValue(sheet, cellName(7, r), saleTypeText)
+
+		paymentText := "เงินสด"
+		if sale.PaymentMethod == models.PaymentTransfer {
+			paymentText = "เงินโอน"
+		}
+		f.SetCellValue(sheet, cellName(8, r), paymentText)
+
+		userName := "-"
+		if sale.User.FullName != "" {
+			userName = sale.User.FullName
+		} else if sale.User.Username != "" {
+			userName = sale.User.Username
+		}
+		f.SetCellValue(sheet, cellName(9, r), userName)
+		f.SetCellValue(sheet, cellName(10, r), sale.Note)
+	}
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", "attachment; filename=sales_export.xlsx")
+	if err := f.Write(c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถสร้างไฟล์ Excel ได้"})
+	}
+}
+
+func cellName(col, row int) string {
+	name, _ := excelize.CoordinatesToCellName(col, row)
+	return name
+}
+
+func joinStrings(s []string) string {
+	result := ""
+	for i, v := range s {
+		if i > 0 {
+			result += ", "
+		}
+		result += v
+	}
+	return result
 }

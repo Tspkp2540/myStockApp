@@ -15,12 +15,15 @@ import (
 
 func GetMenuItems(c *gin.Context) {
 	var items []models.MenuItem
-	query := database.DB.Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").Order("name")
+	query := database.DB.Preload("MenuCategory").Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").Order("sort_order ASC, name")
 	if search := c.Query("search"); search != "" {
 		query = query.Where("name LIKE ?", "%"+search+"%")
 	}
 	if active := c.Query("active"); active == "true" {
 		query = query.Where("active = ?", true)
+	}
+	if catID := c.Query("menu_category_id"); catID != "" {
+		query = query.Where("menu_category_id = ?", catID)
 	}
 	query.Find(&items)
 
@@ -40,7 +43,7 @@ func GetMenuItems(c *gin.Context) {
 
 func GetMenuItem(c *gin.Context) {
 	var item models.MenuItem
-	if err := database.DB.Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, c.Param("id")).Error; err != nil {
+	if err := database.DB.Preload("MenuCategory").Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบเมนู"})
 		return
 	}
@@ -53,11 +56,14 @@ func GetMenuItem(c *gin.Context) {
 
 func CreateMenuItem(c *gin.Context) {
 	var body struct {
-		Name        string  `json:"name" binding:"required"`
-		Description string  `json:"description"`
-		Price       float64 `json:"price" binding:"required"`
-		ImageURL    string  `json:"image_url"`
-		Ingredients []struct {
+		Name           string  `json:"name" binding:"required"`
+		Description    string  `json:"description"`
+		Price          float64 `json:"price" binding:"required"`
+		CostPrice      float64 `json:"cost_price" binding:"required"`
+		MenuCategoryID uint    `json:"menu_category_id" binding:"required"`
+		SortOrder      int     `json:"sort_order"`
+		ImageURL       string  `json:"image_url"`
+		Ingredients    []struct {
 			IngredientID uint    `json:"ingredient_id"`
 			Quantity     float64 `json:"quantity"`
 		} `json:"ingredients"`
@@ -68,11 +74,14 @@ func CreateMenuItem(c *gin.Context) {
 	}
 
 	item := models.MenuItem{
-		Name:        body.Name,
-		Description: body.Description,
-		Price:       body.Price,
-		ImageURL:    body.ImageURL,
-		Active:      true,
+		Name:           body.Name,
+		Description:    body.Description,
+		Price:          body.Price,
+		CostPrice:      body.CostPrice,
+		MenuCategoryID: body.MenuCategoryID,
+		SortOrder:      body.SortOrder,
+		ImageURL:       body.ImageURL,
+		Active:         true,
 	}
 	if err := database.DB.Create(&item).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถสร้างเมนูได้"})
@@ -91,7 +100,7 @@ func CreateMenuItem(c *gin.Context) {
 		database.DB.Create(&mi)
 	}
 
-	database.DB.Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, item.ID)
+	database.DB.Preload("MenuCategory").Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, item.ID)
 	c.JSON(http.StatusCreated, item)
 }
 
@@ -103,12 +112,15 @@ func UpdateMenuItem(c *gin.Context) {
 	}
 
 	var body struct {
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		Price       float64 `json:"price"`
-		ImageURL    string  `json:"image_url"`
-		Active      *bool   `json:"active"`
-		Ingredients []struct {
+		Name           string  `json:"name"`
+		Description    string  `json:"description"`
+		Price          float64 `json:"price"`
+		CostPrice      float64 `json:"cost_price"`
+		MenuCategoryID uint    `json:"menu_category_id"`
+		SortOrder      *int    `json:"sort_order"`
+		ImageURL       string  `json:"image_url"`
+		Active         *bool   `json:"active"`
+		Ingredients    []struct {
 			IngredientID uint    `json:"ingredient_id"`
 			Quantity     float64 `json:"quantity"`
 		} `json:"ingredients"`
@@ -123,6 +135,13 @@ func UpdateMenuItem(c *gin.Context) {
 	}
 	item.Description = body.Description
 	item.Price = body.Price
+	item.CostPrice = body.CostPrice
+	if body.MenuCategoryID > 0 {
+		item.MenuCategoryID = body.MenuCategoryID
+	}
+	if body.SortOrder != nil {
+		item.SortOrder = *body.SortOrder
+	}
 	item.ImageURL = body.ImageURL
 	if body.Active != nil {
 		item.Active = *body.Active
@@ -145,7 +164,7 @@ func UpdateMenuItem(c *gin.Context) {
 		}
 	}
 
-	database.DB.Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, item.ID)
+	database.DB.Preload("MenuCategory").Preload("Ingredients").Preload("Ingredients.Ingredient").Preload("Ingredients.Ingredient.Unit").First(&item, item.ID)
 	c.JSON(http.StatusOK, item)
 }
 
@@ -166,7 +185,9 @@ func CreateSale(c *gin.Context) {
 			MenuItemID uint `json:"menu_item_id" binding:"required"`
 			Quantity   int  `json:"quantity" binding:"required"`
 		} `json:"items" binding:"required"`
-		Note string `json:"note"`
+		SaleType      string `json:"sale_type" binding:"required"`
+		PaymentMethod string `json:"payment_method" binding:"required"`
+		Note          string `json:"note"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -176,12 +197,22 @@ func CreateSale(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ต้องมีรายการอย่างน้อย 1 รายการ"})
 		return
 	}
+	if body.SaleType != string(models.SaleTypeDineIn) && body.SaleType != string(models.SaleTypeDelivery) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sale_type ต้องเป็น dine_in หรือ delivery"})
+		return
+	}
+	if body.PaymentMethod != string(models.PaymentCash) && body.PaymentMethod != string(models.PaymentTransfer) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "payment_method ต้องเป็น cash หรือ transfer"})
+		return
+	}
 
 	user := c.MustGet("user").(models.User)
 
 	sale := models.Sale{
-		UserID: user.ID,
-		Note:   body.Note,
+		UserID:        user.ID,
+		Note:          body.Note,
+		SaleType:      models.SaleType(body.SaleType),
+		PaymentMethod: models.PaymentMethod(body.PaymentMethod),
 	}
 	database.DB.Create(&sale)
 

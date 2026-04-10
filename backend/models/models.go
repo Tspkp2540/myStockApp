@@ -98,16 +98,27 @@ type DeletedTransaction struct {
 
 // ==================== Backoffice — Menu & Sales ====================
 
+type MenuCategory struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"not null;uniqueIndex"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type MenuItem struct {
-	ID          uint             `json:"id" gorm:"primaryKey"`
-	Name        string           `json:"name" gorm:"not null"`
-	Description string           `json:"description"`
-	Price       float64          `json:"price" gorm:"not null;default:0"`
-	ImageURL    string           `json:"image_url"`
-	Active      bool             `json:"active" gorm:"default:true"`
-	Ingredients []MenuIngredient `json:"ingredients" gorm:"foreignKey:MenuItemID"`
-	CreatedAt   time.Time        `json:"created_at"`
-	UpdatedAt   time.Time        `json:"updated_at"`
+	ID             uint             `json:"id" gorm:"primaryKey"`
+	Name           string           `json:"name" gorm:"not null"`
+	Description    string           `json:"description"`
+	Price          float64          `json:"price" gorm:"not null;default:0"`
+	CostPrice      float64          `json:"cost_price" gorm:"not null;default:0"`
+	MenuCategoryID uint             `json:"menu_category_id"`
+	MenuCategory   MenuCategory     `json:"menu_category" gorm:"foreignKey:MenuCategoryID"`
+	SortOrder      int              `json:"sort_order" gorm:"default:0"`
+	ImageURL       string           `json:"image_url"`
+	Active         bool             `json:"active" gorm:"default:true"`
+	Ingredients    []MenuIngredient `json:"ingredients" gorm:"foreignKey:MenuItemID"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
 }
 
 type MenuIngredient struct {
@@ -118,16 +129,32 @@ type MenuIngredient struct {
 	Quantity     float64    `json:"quantity" gorm:"not null"`
 }
 
+type SaleType string
+
+const (
+	SaleTypeDineIn   SaleType = "dine_in"
+	SaleTypeDelivery SaleType = "delivery"
+)
+
+type PaymentMethod string
+
+const (
+	PaymentCash     PaymentMethod = "cash"
+	PaymentTransfer PaymentMethod = "transfer"
+)
+
 type Sale struct {
-	ID        uint       `json:"id" gorm:"primaryKey"`
-	Items     []SaleItem `json:"items" gorm:"foreignKey:SaleID"`
-	Total     float64    `json:"total" gorm:"not null;default:0"`
-	TotalCost float64    `json:"total_cost" gorm:"default:0"`
-	Profit    float64    `json:"profit" gorm:"default:0"`
-	Note      string     `json:"note"`
-	UserID    uint       `json:"user_id"`
-	User      User       `json:"user" gorm:"foreignKey:UserID"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID            uint          `json:"id" gorm:"primaryKey"`
+	Items         []SaleItem    `json:"items" gorm:"foreignKey:SaleID"`
+	Total         float64       `json:"total" gorm:"not null;default:0"`
+	TotalCost     float64       `json:"total_cost" gorm:"default:0"`
+	Profit        float64       `json:"profit" gorm:"default:0"`
+	SaleType      SaleType      `json:"sale_type" gorm:"not null;default:dine_in"`
+	PaymentMethod PaymentMethod `json:"payment_method" gorm:"not null;default:cash"`
+	Note          string        `json:"note"`
+	UserID        uint          `json:"user_id"`
+	User          User          `json:"user" gorm:"foreignKey:UserID"`
+	CreatedAt     time.Time     `json:"created_at"`
 }
 
 type SaleItem struct {
@@ -143,18 +170,20 @@ type SaleItem struct {
 // ==================== Deleted Sales (Front-Office archive) ====================
 
 type DeletedSale struct {
-	ID                uint      `json:"id" gorm:"primaryKey"`
-	OriginalID        uint      `json:"original_id"`
-	Total             float64   `json:"total"`
-	TotalCost         float64   `json:"total_cost"`
-	Profit            float64   `json:"profit"`
-	Note              string    `json:"note"`
-	ItemsSummary      string    `json:"items_summary"`
-	UserID            uint      `json:"user_id"`
-	User              User      `json:"user" gorm:"foreignKey:UserID"`
-	OriginalCreatedAt time.Time `json:"original_created_at"`
-	DeleteReason      string    `json:"delete_reason"`
-	DeletedByID       uint      `json:"deleted_by_id"`
-	DeletedBy         User      `json:"deleted_by" gorm:"foreignKey:DeletedByID"`
-	DeletedAt         time.Time `json:"deleted_at"`
+	ID                uint          `json:"id" gorm:"primaryKey"`
+	OriginalID        uint          `json:"original_id"`
+	Total             float64       `json:"total"`
+	TotalCost         float64       `json:"total_cost"`
+	Profit            float64       `json:"profit"`
+	SaleType          SaleType      `json:"sale_type"`
+	PaymentMethod     PaymentMethod `json:"payment_method"`
+	Note              string        `json:"note"`
+	ItemsSummary      string        `json:"items_summary"`
+	UserID            uint          `json:"user_id"`
+	User              User          `json:"user" gorm:"foreignKey:UserID"`
+	OriginalCreatedAt time.Time     `json:"original_created_at"`
+	DeleteReason      string        `json:"delete_reason"`
+	DeletedByID       uint          `json:"deleted_by_id"`
+	DeletedBy         User          `json:"deleted_by" gorm:"foreignKey:DeletedByID"`
+	DeletedAt         time.Time     `json:"deleted_at"`
 }

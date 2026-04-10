@@ -2,10 +2,16 @@
   <div>
     <div class="page-header">
       <h1 class="page-title">ประวัติการขาย</h1>
-      <button class="btn btn-success" @click="openSale">
-        <span class="material-symbols-outlined">point_of_sale</span>
-        ขายเมนู
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" @click="doExport" :disabled="exporting">
+          <span class="material-symbols-outlined">download</span>
+          {{ exporting ? 'กำลัง Export...' : 'Export Excel' }}
+        </button>
+        <button class="btn btn-success" @click="openSale">
+          <span class="material-symbols-outlined">point_of_sale</span>
+          ขายเมนู
+        </button>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -78,6 +84,8 @@
               <th class="text-right">ยอดรวม</th>
               <th class="text-right">ต้นทุน</th>
               <th class="text-right">กำไร</th>
+              <th>ประเภท</th>
+              <th>ชำระเงิน</th>
               <th>ผู้ขาย</th>
               <th>หมายเหตุ</th>
               <th class="text-center">จัดการ</th>
@@ -97,6 +105,16 @@
               <td class="text-right font-mono text-muted">{{ formatMoney(sale.total_cost) }}</td>
               <td class="text-right font-mono" :class="sale.profit >= 0 ? 'text-success' : 'text-danger'">
                 {{ formatMoney(sale.profit) }}
+              </td>
+              <td>
+                <span class="badge" :class="sale.sale_type === 'delivery' ? 'badge-blue' : 'badge-green'">
+                  {{ sale.sale_type === 'delivery' ? 'Delivery' : 'หน้าร้าน' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" :class="sale.payment_method === 'transfer' ? 'badge-purple' : 'badge-orange'">
+                  {{ sale.payment_method === 'transfer' ? 'เงินโอน' : 'เงินสด' }}
+                </span>
               </td>
               <td>{{ sale.user?.full_name || sale.user?.username || '-' }}</td>
               <td class="text-muted">{{ sale.note || '-' }}</td>
@@ -143,6 +161,30 @@
             <input v-model="saleForm.note" class="form-control" placeholder="หมายเหตุ (ถ้ามี)" />
           </div>
 
+          <div class="form-group" style="margin-top: 12px;">
+            <label>ประเภทการขาย *</label>
+            <div style="display:flex;gap:12px;margin-top:4px;">
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="radio" v-model="saleForm.sale_type" value="dine_in" /> หน้าร้าน
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="radio" v-model="saleForm.sale_type" value="delivery" /> ส่ง Delivery
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label>ชำระเงินด้วย *</label>
+            <div style="display:flex;gap:12px;margin-top:4px;">
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="radio" v-model="saleForm.payment_method" value="cash" /> เงินสด
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="radio" v-model="saleForm.payment_method" value="transfer" /> เงินโอน
+              </label>
+            </div>
+          </div>
+
           <!-- Total preview -->
           <div v-if="salePreviewTotal > 0" style="text-align: right; font-size: 1.1rem; font-weight: 700; margin-top: 12px;">
             ยอดรวม: {{ formatMoney(salePreviewTotal) }}
@@ -187,7 +229,7 @@
 </template>
 
 <script>
-import { getSales, deleteSale, createSale, getMenuItems } from '../api/index.js'
+import { getSales, deleteSale, createSale, getMenuItems, exportSalesExcel } from '../api/index.js'
 import ConfirmModal from '../components/ConfirmModal.vue'
 
 export default {
@@ -204,9 +246,12 @@ export default {
       deleteTarget: null,
       saleSaving: false,
       saleError: '',
+      exporting: false,
       saleForm: {
         items: [{ menu_item_id: '', quantity: 1 }],
-        note: ''
+        note: '',
+        sale_type: '',
+        payment_method: ''
       }
     }
   },
@@ -238,7 +283,7 @@ export default {
     },
     async openSale() {
       this.saleError = ''
-      this.saleForm = { items: [{ menu_item_id: '', quantity: 1 }], note: '' }
+      this.saleForm = { items: [{ menu_item_id: '', quantity: 1 }], note: '', sale_type: '', payment_method: '' }
       try {
         const { data } = await getMenuItems({ active: 'true' })
         this.menuItems = data || []
@@ -256,6 +301,14 @@ export default {
         this.saleError = 'กรุณาเลือกเมนูอย่างน้อย 1 รายการ'
         return
       }
+      if (!this.saleForm.sale_type) {
+        this.saleError = 'กรุณาเลือกประเภทการขาย'
+        return
+      }
+      if (!this.saleForm.payment_method) {
+        this.saleError = 'กรุณาเลือกวิธีชำระเงิน'
+        return
+      }
       this.showConfirmSale = true
     },
     async doSubmitSale() {
@@ -265,7 +318,7 @@ export default {
         .map(i => ({ menu_item_id: Number(i.menu_item_id), quantity: Number(i.quantity) }))
       this.saleSaving = true
       try {
-        await createSale({ items, note: this.saleForm.note })
+        await createSale({ items, note: this.saleForm.note, sale_type: this.saleForm.sale_type, payment_method: this.saleForm.payment_method })
         this.showSaleModal = false
         await this.load()
       } catch (e) {
@@ -298,6 +351,28 @@ export default {
       const dt = new Date(d)
       return dt.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: '2-digit' }) +
         ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    },
+    async doExport() {
+      this.exporting = true
+      try {
+        const params = {}
+        if (this.dateFrom) params.date_from = this.dateFrom
+        if (this.dateTo) params.date_to = this.dateTo
+        const { data } = await exportSalesExcel(params)
+        const url = window.URL.createObjectURL(new Blob([data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', 'sales_export.xlsx')
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error(e)
+        alert('ไม่สามารถ Export ได้')
+      } finally {
+        this.exporting = false
+      }
     }
   }
 }

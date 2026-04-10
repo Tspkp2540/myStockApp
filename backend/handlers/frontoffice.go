@@ -48,6 +48,8 @@ func DeleteSaleWithReason(c *gin.Context) {
 		Total:             sale.Total,
 		TotalCost:         sale.TotalCost,
 		Profit:            sale.Profit,
+		SaleType:          sale.SaleType,
+		PaymentMethod:     sale.PaymentMethod,
 		Note:              sale.Note,
 		ItemsSummary:      strings.Join(parts, ", "),
 		UserID:            sale.UserID,

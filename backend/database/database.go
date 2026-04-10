@@ -34,6 +34,7 @@ func InitDB(dbPath string) error {
 		&models.Ingredient{},
 		&models.Transaction{},
 		&models.DeletedTransaction{},
+		&models.MenuCategory{},
 		&models.MenuItem{},
 		&models.MenuIngredient{},
 		&models.Sale{},
@@ -82,6 +83,19 @@ func seedData() {
 	}
 
 	log.Println("Seed data checked/created successfully")
+
+	// Seed default menu categories
+	defaultMenuCategories := []string{
+		"อาหารจานเดียว", "กับข้าว", "ของทอด", "สลัด/ยำ", "ก๋วยเตี๋ยว",
+		"ของหวาน", "เครื่องดื่ม", "อื่นๆ",
+	}
+	for _, name := range defaultMenuCategories {
+		var count int64
+		DB.Model(&models.MenuCategory{}).Where("name = ?", name).Count(&count)
+		if count == 0 {
+			DB.Create(&models.MenuCategory{Name: name})
+		}
+	}
 
 	// Seed default admin user
 	var adminCount int64

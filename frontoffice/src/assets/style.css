@@ -218,6 +218,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .badge-red { background: var(--color-danger-light); color: var(--color-danger); }
 .badge-blue { background: var(--color-info-light); color: var(--color-info); }
 .badge-gray { background: var(--color-bg-alt); color: var(--color-text-secondary); }
+.badge-orange { background: #fff3e0; color: #e65100; }
+.badge-purple { background: #f3e5f5; color: #7b1fa2; }
 
 /* ── Login Page ── */
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1c1917 0%, #292524 100%); padding: 16px; }

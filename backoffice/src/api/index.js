@@ -40,5 +40,14 @@ export const getBackofficeDashboard = () => api.get('/backoffice/dashboard')
 // Deleted Sales (from front-office)
 export const getDeletedSales = (params) => api.get('/sales/deleted', { params })
 
+// Menu Categories
+export const getMenuCategories = () => api.get('/menu-categories')
+export const createMenuCategory = (data) => api.post('/menu-categories', data)
+export const updateMenuCategory = (id, data) => api.put(`/menu-categories/${id}`, data)
+export const deleteMenuCategory = (id) => api.delete(`/menu-categories/${id}`)
+
 // Ingredients (for menu composition)
 export const getIngredients = (params) => api.get('/ingredients', { params })
+
+// Export Sales
+export const exportSalesExcel = (params) => api.get('/sales/export', { params, responseType: 'blob' })
