@@ -44,8 +44,8 @@
               <th class="text-center">จัดการ</th>
             </tr>
           </thead>
-          <template v-for="group in groupedItems">
-            <tbody :key="group.category">
+          <template v-for="group in groupedItems" :key="group.category">
+            <tbody>
               <tr style="background:var(--color-bg-secondary);">
                 <td colspan="9" style="font-weight:700;font-size:.95rem;padding:8px 12px;">
                   <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:4px;font-size:18px;">category</span>
