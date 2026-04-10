@@ -21,6 +21,10 @@
             <span class="material-symbols-outlined">restaurant_menu</span>
             <span>จัดการเมนู</span>
           </router-link>
+          <router-link to="/menu-categories" class="sidebar-link" @click="closeSidebar">
+            <span class="material-symbols-outlined">category</span>
+            <span>หมวดหมู่เมนู</span>
+          </router-link>
         </div>
         <div class="sidebar-nav-section">
           <span class="sidebar-nav-label">รายการ</span>

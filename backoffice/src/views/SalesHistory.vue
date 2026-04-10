@@ -142,9 +142,11 @@
           <div v-for="(row, idx) in saleForm.items" :key="idx" class="ingredient-row">
             <select v-model="row.menu_item_id" class="form-control">
               <option value="">-- เลือกเมนู --</option>
-              <option v-for="m in menuItems" :key="m.id" :value="m.id">
-                {{ m.name }} ({{ formatMoney(m.price) }})
-              </option>
+              <optgroup v-for="group in groupedMenuItems" :key="group.category" :label="group.category">
+                <option v-for="m in group.items" :key="m.id" :value="m.id">
+                  {{ m.name }} ({{ formatMoney(m.price) }})
+                </option>
+              </optgroup>
             </select>
             <input v-model.number="row.quantity" class="form-control" type="number" min="1" placeholder="จำนวน" style="max-width: 80px;" />
             <button class="btn btn-icon btn-outline" style="color:var(--color-danger)" @click="saleForm.items.splice(idx, 1)">
@@ -264,6 +266,15 @@ export default {
         const menu = this.menuItems.find(m => m.id === Number(row.menu_item_id))
         return sum + (menu ? menu.price * (row.quantity || 0) : 0)
       }, 0)
+    },
+    groupedMenuItems() {
+      const groups = {}
+      for (const item of this.menuItems) {
+        const cat = item.menu_category?.name || 'อื่นๆ'
+        if (!groups[cat]) groups[cat] = []
+        groups[cat].push(item)
+      }
+      return Object.keys(groups).sort().map(cat => ({ category: cat, items: groups[cat] }))
     }
   },
   async created() {

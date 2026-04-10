@@ -277,7 +277,7 @@ func CreateSale(c *gin.Context) {
 
 func GetSales(c *gin.Context) {
 	var sales []models.Sale
-	query := database.DB.Preload("Items").Preload("Items.MenuItem").Preload("User").Order("created_at DESC")
+	query := database.DB.Preload("Items").Preload("Items.MenuItem").Preload("Items.MenuItem.MenuCategory").Preload("User").Order("created_at DESC")
 	if dateFrom := c.Query("date_from"); dateFrom != "" {
 		query = query.Where("created_at >= ?", dateFrom+"T00:00:00Z")
 	}

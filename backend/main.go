@@ -135,6 +135,7 @@ func main() {
 		admin.POST("/transactions/:id/restore", handlers.RestoreTransaction)
 
 		// Deleted sales review (admin — backoffice)
+		admin.GET("/sales/deleted/export", handlers.ExportDeletedSalesExcel)
 		admin.GET("/sales/deleted", handlers.GetDeletedSales)
 	}
 

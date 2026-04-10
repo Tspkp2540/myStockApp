@@ -2,6 +2,10 @@
   <div>
     <div class="page-header">
       <h1 class="page-title">รายการขายที่ถูกลบ</h1>
+      <button class="btn btn-outline" @click="doExport" :disabled="exporting">
+        <span class="material-symbols-outlined">download</span>
+        {{ exporting ? 'กำลัง Export...' : 'Export Excel' }}
+      </button>
     </div>
 
     <!-- Filters -->
@@ -62,11 +66,11 @@
 </template>
 
 <script>
-import { getDeletedSales } from '../api/index.js'
+import { getDeletedSales, exportDeletedSalesExcel } from '../api/index.js'
 
 export default {
   data() {
-    return { items: [], dateFrom: '', dateTo: '' }
+    return { items: [], dateFrom: '', dateTo: '', exporting: false }
   },
   async created() {
     await this.load()
@@ -92,6 +96,28 @@ export default {
       const dt = new Date(d)
       return dt.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: '2-digit' }) +
         ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    },
+    async doExport() {
+      this.exporting = true
+      try {
+        const params = {}
+        if (this.dateFrom) params.date_from = this.dateFrom
+        if (this.dateTo) params.date_to = this.dateTo
+        const { data } = await exportDeletedSalesExcel(params)
+        const url = window.URL.createObjectURL(new Blob([data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', 'deleted_sales_export.xlsx')
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error(e)
+        alert('ไม่สามารถ Export ได้')
+      } finally {
+        this.exporting = false
+      }
     }
   }
 }

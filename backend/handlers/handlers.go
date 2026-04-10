@@ -563,3 +563,77 @@ func joinStrings(s []string) string {
 	}
 	return result
 }
+
+// ==================== Export Deleted Sales to Excel ====================
+
+func ExportDeletedSalesExcel(c *gin.Context) {
+	var deleted []models.DeletedSale
+	query := database.DB.Preload("User").Preload("DeletedBy").Order("deleted_at DESC")
+	if dateFrom := c.Query("date_from"); dateFrom != "" {
+		query = query.Where("deleted_at >= ?", dateFrom+"T00:00:00Z")
+	}
+	if dateTo := c.Query("date_to"); dateTo != "" {
+		query = query.Where("deleted_at <= ?", dateTo+"T23:59:59Z")
+	}
+	query.Limit(5000).Find(&deleted)
+
+	f := excelize.NewFile()
+	sheet := "DeletedSales"
+	f.SetSheetName("Sheet1", sheet)
+
+	headers := []string{"#", "รายการเดิม", "ยอดรวม", "ต้นทุน", "กำไร", "ประเภทการขาย", "การชำระเงิน", "ผู้ขายเดิม", "เหตุผลที่ลบ", "ลบโดย", "วันที่ลบ", "วันที่ขายเดิม", "หมายเหตุ"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true}})
+	f.SetRowStyle(sheet, 1, 1, headerStyle)
+
+	for row, d := range deleted {
+		r := row + 2
+		f.SetCellValue(sheet, cellName(1, r), d.OriginalID)
+		f.SetCellValue(sheet, cellName(2, r), d.ItemsSummary)
+		f.SetCellValue(sheet, cellName(3, r), d.Total)
+		f.SetCellValue(sheet, cellName(4, r), d.TotalCost)
+		f.SetCellValue(sheet, cellName(5, r), d.Profit)
+
+		saleTypeText := "หน้าร้าน"
+		if d.SaleType == models.SaleTypeDelivery {
+			saleTypeText = "Delivery"
+		}
+		f.SetCellValue(sheet, cellName(6, r), saleTypeText)
+
+		paymentText := "เงินสด"
+		if d.PaymentMethod == models.PaymentTransfer {
+			paymentText = "เงินโอน"
+		}
+		f.SetCellValue(sheet, cellName(7, r), paymentText)
+
+		userName := "-"
+		if d.User.FullName != "" {
+			userName = d.User.FullName
+		} else if d.User.Username != "" {
+			userName = d.User.Username
+		}
+		f.SetCellValue(sheet, cellName(8, r), userName)
+		f.SetCellValue(sheet, cellName(9, r), d.DeleteReason)
+
+		deletedByName := "-"
+		if d.DeletedBy.FullName != "" {
+			deletedByName = d.DeletedBy.FullName
+		} else if d.DeletedBy.Username != "" {
+			deletedByName = d.DeletedBy.Username
+		}
+		f.SetCellValue(sheet, cellName(10, r), deletedByName)
+		f.SetCellValue(sheet, cellName(11, r), d.DeletedAt.Format("2006-01-02 15:04"))
+		f.SetCellValue(sheet, cellName(12, r), d.OriginalCreatedAt.Format("2006-01-02 15:04"))
+		f.SetCellValue(sheet, cellName(13, r), d.Note)
+	}
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", "attachment; filename=deleted_sales_export.xlsx")
+	if err := f.Write(c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถสร้างไฟล์ Excel ได้"})
+	}
+}

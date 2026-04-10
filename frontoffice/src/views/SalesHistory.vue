@@ -84,6 +84,7 @@
               <td>{{ formatDate(sale.created_at) }}</td>
               <td>
                 <div v-for="item in sale.items" :key="item.id" style="font-size:.8rem;">
+                  <span class="text-muted" style="font-size:.7rem;">{{ item.menu_item?.menu_category?.name || '' }}</span>
                   {{ item.menu_item?.name }} × {{ item.quantity }}
                   <span class="text-muted">({{ formatMoney(item.price) }})</span>
                 </div>

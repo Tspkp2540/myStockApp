@@ -3,6 +3,7 @@ import { useAuth } from './composables/useAuth.js'
 import Login from './views/Login.vue'
 import Dashboard from './views/Dashboard.vue'
 import MenuItems from './views/MenuItems.vue'
+import MenuCategories from './views/MenuCategories.vue'
 import SalesHistory from './views/SalesHistory.vue'
 import DeletedSales from './views/DeletedSales.vue'
 
@@ -10,6 +11,7 @@ const routes = [
   { path: '/login', name: 'Login', component: Login, meta: { public: true } },
   { path: '/', name: 'Dashboard', component: Dashboard },
   { path: '/menu', name: 'MenuItems', component: MenuItems },
+  { path: '/menu-categories', name: 'MenuCategories', component: MenuCategories },
   { path: '/sales', name: 'SalesHistory', component: SalesHistory },
   { path: '/deleted-sales', name: 'DeletedSales', component: DeletedSales },
 ]

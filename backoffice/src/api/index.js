@@ -51,3 +51,4 @@ export const getIngredients = (params) => api.get('/ingredients', { params })
 
 // Export Sales
 export const exportSalesExcel = (params) => api.get('/sales/export', { params, responseType: 'blob' })
+export const exportDeletedSalesExcel = (params) => api.get('/sales/deleted/export', { params, responseType: 'blob' })
