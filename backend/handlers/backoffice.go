@@ -59,7 +59,7 @@ func CreateMenuItem(c *gin.Context) {
 		Name           string  `json:"name" binding:"required"`
 		Description    string  `json:"description"`
 		Price          float64 `json:"price" binding:"required"`
-		CostPrice      float64 `json:"cost_price" binding:"required"`
+		CostPrice      float64 `json:"cost_price" binding:"min=0"`
 		MenuCategoryID uint    `json:"menu_category_id" binding:"required"`
 		SortOrder      int     `json:"sort_order"`
 		ImageURL       string  `json:"image_url"`
@@ -71,6 +71,13 @@ func CreateMenuItem(c *gin.Context) {
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Auto-assign sort_order if not specified
+	if body.SortOrder == 0 {
+		var maxSort int
+		database.DB.Model(&models.MenuItem{}).Select("COALESCE(MAX(sort_order),0)").Scan(&maxSort)
+		body.SortOrder = maxSort + 1
 	}
 
 	item := models.MenuItem{
@@ -198,11 +205,11 @@ func CreateSale(c *gin.Context) {
 		return
 	}
 	if body.SaleType != string(models.SaleTypeDineIn) && body.SaleType != string(models.SaleTypeDelivery) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sale_type ต้องเป็น dine_in หรือ delivery"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกประเภทการขาย (หน้าร้าน หรือ Delivery)"})
 		return
 	}
 	if body.PaymentMethod != string(models.PaymentCash) && body.PaymentMethod != string(models.PaymentTransfer) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "payment_method ต้องเป็น cash หรือ transfer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกวิธีชำระเงิน (เงินสด หรือ เงินโอน)"})
 		return
 	}
 

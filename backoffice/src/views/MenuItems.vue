@@ -121,7 +121,7 @@
               <span v-if="fieldErrors.cost_price" class="field-error">{{ fieldErrors.cost_price }}</span>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group" v-if="editing">
             <label>ลำดับการแสดง</label>
             <input v-model.number="form.sort_order" class="form-control" type="number" min="0" placeholder="เช่น 1, 2, 3" />
           </div>

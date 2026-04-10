@@ -31,7 +31,7 @@ func CreateCategory(c *gin.Context) {
 func UpdateCategory(c *gin.Context) {
 	var cat models.Category
 	if err := database.DB.First(&cat, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบหมวดหมู่นี้"})
 		return
 	}
 	if err := c.ShouldBindJSON(&cat); err != nil {
@@ -47,7 +47,7 @@ func DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบหมวดหมู่แล้ว"})
 }
 
 func BulkDeleteCategories(c *gin.Context) {
@@ -55,14 +55,14 @@ func BulkDeleteCategories(c *gin.Context) {
 		IDs []uint `json:"ids"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกรายการที่ต้องการลบ"})
 		return
 	}
 	if err := database.DB.Delete(&models.Category{}, body.IDs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบหมวดหมู่แล้ว", "count": len(body.IDs)})
 }
 
 // ==================== Units ====================
@@ -86,7 +86,7 @@ func CreateUnit(c *gin.Context) {
 func UpdateUnit(c *gin.Context) {
 	var unit models.Unit
 	if err := database.DB.First(&unit, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Unit not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบหน่วยนี้"})
 		return
 	}
 	if err := c.ShouldBindJSON(&unit); err != nil {
@@ -102,7 +102,7 @@ func DeleteUnit(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบหน่วยแล้ว"})
 }
 
 func BulkDeleteUnits(c *gin.Context) {
@@ -110,14 +110,14 @@ func BulkDeleteUnits(c *gin.Context) {
 		IDs []uint `json:"ids"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกรายการที่ต้องการลบ"})
 		return
 	}
 	if err := database.DB.Delete(&models.Unit{}, body.IDs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบหน่วยแล้ว", "count": len(body.IDs)})
 }
 
 func GetIngredients(c *gin.Context) {
@@ -149,7 +149,7 @@ func CreateIngredient(c *gin.Context) {
 		return
 	}
 	if body.UnitID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unit_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกหน่วย"})
 		return
 	}
 
@@ -193,7 +193,7 @@ func CreateIngredient(c *gin.Context) {
 func UpdateIngredient(c *gin.Context) {
 	var ing models.Ingredient
 	if err := database.DB.First(&ing, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ingredient not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบวัตถุดิบนี้"})
 		return
 	}
 	if err := c.ShouldBindJSON(&ing); err != nil {
@@ -201,11 +201,11 @@ func UpdateIngredient(c *gin.Context) {
 		return
 	}
 	if ing.CategoryID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกหมวดหมู่"})
 		return
 	}
 	if ing.UnitID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unit_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกหน่วย"})
 		return
 	}
 	database.DB.Save(&ing)
@@ -218,7 +218,7 @@ func DeleteIngredient(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบวัตถุดิบแล้ว"})
 }
 
 func BulkDeleteIngredients(c *gin.Context) {
@@ -226,14 +226,14 @@ func BulkDeleteIngredients(c *gin.Context) {
 		IDs []uint `json:"ids"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ids is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกรายการที่ต้องการลบ"})
 		return
 	}
 	if err := database.DB.Delete(&models.Ingredient{}, body.IDs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted", "count": len(body.IDs)})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบวัตถุดิบแล้ว", "count": len(body.IDs)})
 }
 
 func GetTransactions(c *gin.Context) {
@@ -262,20 +262,20 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 	if txn.Type != models.StockIn && txn.Type != models.StockOut {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'in' or 'out'"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ประเภทต้องเป็น 'รับเข้า' หรือ 'เบิกออก' เท่านั้น"})
 		return
 	}
 	if txn.Quantity <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "quantity must be positive"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "จำนวนต้องมากกว่า 0"})
 		return
 	}
 	var ing models.Ingredient
 	if err := database.DB.First(&ing, txn.IngredientID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ingredient not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบวัตถุดิบนี้"})
 		return
 	}
 	if txn.Type == models.StockOut && ing.Quantity < txn.Quantity {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient stock"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "สต็อคไม่เพียงพอสำหรับเบิกออก"})
 		return
 	}
 	if txn.Type == models.StockIn {
@@ -314,7 +314,7 @@ func GetIngredientCostSummary(c *gin.Context) {
 func DeleteTransaction(c *gin.Context) {
 	var txn models.Transaction
 	if err := database.DB.Preload("Ingredient").First(&txn, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบรายการนี้"})
 		return
 	}
 
@@ -322,7 +322,7 @@ func DeleteTransaction(c *gin.Context) {
 		Reason string `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.Reason == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "reason is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาระบุเหตุผลในการลบ"})
 		return
 	}
 
@@ -359,7 +359,7 @@ func DeleteTransaction(c *gin.Context) {
 	database.DB.Create(&deleted)
 	database.DB.Delete(&txn)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "ลบรายการแล้ว"})
 }
 
 func GetDeletedTransactions(c *gin.Context) {
@@ -378,14 +378,14 @@ func GetDeletedTransactions(c *gin.Context) {
 func RestoreTransaction(c *gin.Context) {
 	var deleted models.DeletedTransaction
 	if err := database.DB.First(&deleted, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Deleted transaction not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ไม่พบรายการที่ถูกลบนี้"})
 		return
 	}
 
 	// Restore stock change
 	var ing models.Ingredient
 	if err := database.DB.First(&ing, deleted.IngredientID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ingredient no longer exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "วัตถุดิบนี้ถูกลบไปแล้ว ไม่สามารถกู้คืนได้"})
 		return
 	}
 
@@ -393,7 +393,7 @@ func RestoreTransaction(c *gin.Context) {
 		ing.Quantity += deleted.Quantity
 	} else {
 		if ing.Quantity < deleted.Quantity {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient stock to restore this out transaction"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "สต็อคไม่เพียงพอสำหรับกู้คืนรายการนี้"})
 			return
 		}
 		ing.Quantity -= deleted.Quantity
@@ -413,7 +413,7 @@ func RestoreTransaction(c *gin.Context) {
 	database.DB.Create(&txn)
 	database.DB.Delete(&deleted)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Restored"})
+	c.JSON(http.StatusOK, gin.H{"message": "กู้คืนรายการแล้ว"})
 }
 
 func GetDashboard(c *gin.Context) {
