@@ -81,6 +81,7 @@
               <th>#</th>
               <th>วันที่/เวลา</th>
               <th>รายการ</th>
+              <th class="text-center">จำนวน</th>
               <th class="text-right">ยอดรวม</th>
               <th class="text-right">ต้นทุน</th>
               <th class="text-right">กำไร</th>
@@ -97,8 +98,13 @@
               <td>{{ formatDate(sale.created_at) }}</td>
               <td>
                 <div v-for="item in sale.items" :key="item.id" style="font-size: .8rem;">
-                  {{ item.menu_item?.name }} × {{ item.quantity }}
+                  {{ item.menu_item?.name }}
                   <span class="text-muted">({{ formatMoney(item.price) }})</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <div v-for="item in sale.items" :key="'qty-'+item.id" style="font-size: .8rem;">
+                  {{ item.quantity }}
                 </div>
               </td>
               <td class="text-right font-mono" style="font-weight: 600;">{{ formatMoney(sale.total) }}</td>
