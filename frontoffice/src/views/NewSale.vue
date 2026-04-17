@@ -259,7 +259,6 @@ export default {
       searchQuery: '',
       collapsedCategories: {},
       activeCategory: '',
-      categoryRefs: {},
       isSummaryOpen: false,
       note: '',
       saleType: '',
@@ -306,8 +305,9 @@ export default {
       return this.isSummaryOpen
     }
   },
-  async created() {
-    await this.loadMenu()
+  created() {
+    this._categoryRefs = {}
+    this.loadMenu()
   },
   methods: {
     async loadMenu() {
@@ -351,17 +351,9 @@ export default {
     },
     setCategoryRef(category, el) {
       if (el) {
-        this.categoryRefs = {
-          ...this.categoryRefs,
-          [category]: el
-        }
-        return
-      }
-
-      if (this.categoryRefs[category]) {
-        const nextRefs = { ...this.categoryRefs }
-        delete nextRefs[category]
-        this.categoryRefs = nextRefs
+        this._categoryRefs[category] = el
+      } else {
+        delete this._categoryRefs[category]
       }
     },
     async jumpToCategory(category) {
@@ -375,7 +367,7 @@ export default {
       }
 
       await nextTick()
-      this.categoryRefs[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      this._categoryRefs[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     },
     getCategorySelectedCount(category) {
       const group = this.groupedMenuItems.find(item => item.category === category)
